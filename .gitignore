@@ -39,3 +39,4 @@ video-projects/*/build/
 video-projects/*/audio/
 .claude/skills/video-forge/examples/*/audio/
 __pycache__/
+video-projects/*/clips/

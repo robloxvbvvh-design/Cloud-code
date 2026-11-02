@@ -21,9 +21,14 @@
     "instructions": "Энергично, как ведущий",   // openai
     "volume": 1.0
   },
+  "characters": {               // голоса персонажей для диалогов
+    "Клод Код": { "provider": "edge", "voice": "ru-RU-DmitryNeural" },
+    "Артемия":  { "provider": "edge", "voice": "ru-RU-SvetlanaNeural", "rate": "+5%" }
+  },
   "scenes": [
     {
-      "id": 1,                   // необязательно, нумеруется само
+      "id": 1,
+      "speaker": "Артемия",      // чей голос читает narration (ключ из characters)                   // необязательно, нумеруется само
       "narration": "Текст, который читает диктор.",
       "duration": 4,             // минимум секунд; иначе = длина озвучки + 0.8 с
       "visual": {

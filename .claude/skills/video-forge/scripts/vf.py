@@ -94,6 +94,13 @@ SFX_LIB = {
                  "bandpass=f=2000:w=3000,tremolo=f=11:d=0.8,afade=t=in:d=0.3,afade=t=out:st=2.2:d=0.8"),
     "wind": ("anoisesrc=color=brown:d=6:a=0.8", "lowpass=f=600,tremolo=f=0.3:d=0.6,afade=t=in:d=1,afade=t=out:st=5:d=1"),
     "rain": ("anoisesrc=color=pink:d=6:a=0.5", "highpass=f=800,lowpass=f=7000,afade=t=in:d=1,afade=t=out:st=5:d=1"),
+    "roar": ("anoisesrc=color=brown:d=1.8:a=1",
+             "bandpass=f=260:w=320,tremolo=f=26:d=0.6,volume=14,afade=t=in:d=0.25,afade=t=out:st=0.8:d=1.0"),
+    "meow": ("aevalsrc='sin(PI*t/0.6)*(0.5*sin(2*PI*(550*t+95.5*(1-cos(5.236*t))))"
+             "+0.25*sin(4*PI*(550*t+95.5*(1-cos(5.236*t))))+0.12*sin(6*PI*(550*t+95.5*(1-cos(5.236*t)))))':d=0.6", ""),
+    "footstep": ("aevalsrc='sin(2*PI*(55-25*t)*t)*exp(-9*t)+0.2*(random(0)*2-1)*exp(-40*t)':d=0.6", "lowpass=f=400"),
+    "portal": ("aevalsrc='0.4*sin(2*PI*(150*t+300*t*t))*(0.6+0.4*sin(2*PI*9*t))':d=1.6",
+               "aecho=0.8:0.7:60:0.4,afade=t=in:d=0.3,afade=t=out:st=1.2:d=0.4"),
     "camera": ("aevalsrc='(random(0)*2-1)*(exp(-120*t)+0.8*exp(-120*(t-0.09))*gt(t,0.09))':d=0.3", "bandpass=f=3000:w=4000"),
 }
 # Music beds (chords of sines with slow movement)
@@ -336,8 +343,11 @@ def cmd_tts(args) -> None:
     vdir = project / "audio" / "voice"
     vdir.mkdir(parents=True, exist_ok=True)
     all_text = " ".join(s.get("narration", "") for s in data["scenes"])
-    provider, voice = resolve_voice(cfg, all_text)
-    print(f"TTS provider: {provider}  voice: {voice or '-'}")
+    default = resolve_voice(cfg, all_text)
+    print(f"TTS provider: {default[0]}  voice: {default[1] or '-'}")
+    characters = data.get("characters", {})  # {"Name": {"provider": .., "voice": ..}}
+    resolved: dict[str, tuple[str, str]] = {}
+    used: dict[str, str] = {}
     for s in data["scenes"]:
         text = (s.get("narration") or "").strip()
         out = vdir / f"scene_{s['id']:02d}.wav"
@@ -345,25 +355,39 @@ def cmd_tts(args) -> None:
             s.pop("voice_file", None)
             s["voice_duration"] = 0
             continue
-        if out.exists() and not args.force and s.get("voice_text") == text:
+        # per-scene voice: "speaker" picks a character, a "voice" dict overrides fields
+        override = dict(characters.get(s.get("speaker", ""), {}))
+        if isinstance(s.get("voice"), dict):
+            override.update(s["voice"])
+        scfg = {**cfg, **override}
+        if override:
+            key = json.dumps(override, sort_keys=True, ensure_ascii=False)
+            if key not in resolved:
+                resolved[key] = resolve_voice(scfg, text)
+            provider, voice = resolved[key]
+        else:
+            provider, voice = default
+        used[s.get("speaker") or "narrator"] = f"{provider}:{voice}"
+        cache_key = f"{provider}:{voice}|{json.dumps(override, sort_keys=True, ensure_ascii=False)}|{text}"
+        if out.exists() and not args.force and s.get("voice_text") == cache_key:
             print(f"  scene {s['id']}: cached")
         else:
             print(f"  scene {s['id']}: synthesizing ({len(text)} chars)")
             err = None
-            for attempt in range(3):  # online TTS hiccups are common; retry before giving up
+            for attempt in range(8):  # online TTS hiccups are common; retry before giving up
                 try:
-                    tts_one(provider, voice, text, cfg, out)
+                    tts_one(provider, voice, text, scfg, out)
                     err = None
                     break
                 except (Exception, SystemExit) as e:
                     err = e
-                    time.sleep(1.5 * (attempt + 1))
-            if err is not None and provider == "edge":  # try the other voice of the same locale
+                    time.sleep(1.0 + attempt * 0.5)
+            if err is not None and provider == "edge" and not s.get("speaker"):  # other voice, same locale
                 loc = voice[:5]
                 alts = [v for g in EDGE_FALLBACK.values() for v in g.values() if v.startswith(loc) and v != voice]
                 for alt in alts:
                     try:
-                        tts_one("edge", alt, text, cfg, out)
+                        tts_one("edge", alt, text, scfg, out)
                         print(f"  ! {voice} failed for this scene -> used {alt}")
                         err = None
                         break
@@ -372,12 +396,13 @@ def cmd_tts(args) -> None:
             if err is not None:
                 e = err
                 print(f"  ! {provider} failed ({str(e).strip()[:200]}) -> silent placeholder; fix and rerun with --force")
-                tts_one("silent", "", text, cfg, out)
-                text = ""  # do not cache the placeholder
+                tts_one("silent", "", text, scfg, out)
+                cache_key = ""  # do not cache the placeholder
         s["voice_file"] = str(out.relative_to(project))
-        s["voice_text"] = text
+        s["voice_text"] = cache_key
         s["voice_duration"] = round(duration(out), 3)
-    data.setdefault("voice", {})["used"] = {"provider": provider, "voice": voice}
+    data.setdefault("voice", {})["used"] = used if len(used) > 1 else {
+        "provider": default[0], "voice": default[1]} if not used else dict(zip(("provider", "voice"), next(iter(used.values())).split(":", 1)))
     save(project, data)
 
 
