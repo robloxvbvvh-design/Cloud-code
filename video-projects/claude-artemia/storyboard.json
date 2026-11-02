@@ -1,0 +1,265 @@
+{
+  "title": "Клод Код и Артемия",
+  "format": "9:16",
+  "fps": 24,
+  "subtitles": false,
+  "music": "bright",
+  "music_volume": 0.1,
+  "voice": {
+    "provider": "edge",
+    "voice": "ru-RU-DmitryNeural",
+    "lang": "ru",
+    "used": {
+      "Клод Код": "edge:ru-RU-DmitryNeural",
+      "Артемия": "edge:ru-RU-SvetlanaNeural"
+    }
+  },
+  "characters": {
+    "Клод Код": {
+      "provider": "edge",
+      "voice": "ru-RU-DmitryNeural",
+      "rate": "+8%"
+    },
+    "Артемия": {
+      "provider": "edge",
+      "voice": "ru-RU-SvetlanaNeural",
+      "rate": "+5%"
+    }
+  },
+  "scenes": [
+    {
+      "speaker": "Клод Код",
+      "narration": "Эй! Хочешь, чтобы я протестировал видео и мои навыки?",
+      "visual": {
+        "type": "video",
+        "source": "clips/scene_01.mp4",
+        "fade": 0,
+        "description": "Пиксельная 3D-комната. Клод Код прыгает и говорит, Артемия слушает"
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.1,
+          "volume": 0.5,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 1,
+      "voice_file": "audio/voice/scene_01.wav",
+      "voice_text": "edge:ru-RU-DmitryNeural|{\"provider\": \"edge\", \"rate\": \"+8%\", \"voice\": \"ru-RU-DmitryNeural\"}|Эй! Хочешь, чтобы я протестировал видео и мои навыки?",
+      "voice_duration": 4.175,
+      "start": 0.0,
+      "end": 4.975
+    },
+    {
+      "speaker": "Артемия",
+      "narration": "Давай!",
+      "duration": 3.4,
+      "visual": {
+        "type": "video",
+        "source": "clips/scene_02.mp4",
+        "fade": 0,
+        "description": "Артемия соглашается, открывается портал и затягивает обоих"
+      },
+      "sfx": [
+        {
+          "name": "ding",
+          "at": 0.5,
+          "volume": 0.4,
+          "resolved": "audio/sfx/ding.wav"
+        },
+        {
+          "name": "portal",
+          "at": 1.3,
+          "volume": 0.8,
+          "resolved": "audio/sfx/portal.wav"
+        },
+        {
+          "name": "whoosh",
+          "at": 2.6,
+          "volume": 0.7,
+          "resolved": "audio/sfx/whoosh.wav"
+        }
+      ],
+      "id": 2,
+      "voice_file": "audio/voice/scene_02.wav",
+      "voice_text": "edge:ru-RU-SvetlanaNeural|{\"provider\": \"edge\", \"rate\": \"+5%\", \"voice\": \"ru-RU-SvetlanaNeural\"}|Давай!",
+      "voice_duration": 0.439,
+      "start": 4.975,
+      "end": 8.375
+    },
+    {
+      "narration": "",
+      "duration": 4.0,
+      "visual": {
+        "type": "video",
+        "source": "clips/scene_03.mp4",
+        "fade": 0,
+        "description": "Вспышка — герои падают в пиксельную пустыню, вокруг дюны и кактусы"
+      },
+      "sfx": [
+        {
+          "name": "wind",
+          "at": 0.0,
+          "volume": 0.35,
+          "resolved": "audio/sfx/wind.wav"
+        },
+        {
+          "name": "impact",
+          "at": 0.75,
+          "volume": 0.6,
+          "resolved": "audio/sfx/impact.wav"
+        }
+      ],
+      "id": 3,
+      "voice_duration": 0,
+      "start": 8.375,
+      "end": 12.375
+    },
+    {
+      "narration": "",
+      "duration": 4.0,
+      "visual": {
+        "type": "video",
+        "source": "clips/scene_04.mp4",
+        "fade": 0,
+        "description": "Вращающаяся воксельная спираль ДНК в космосе"
+      },
+      "sfx": [
+        {
+          "name": "riser",
+          "at": 0.0,
+          "volume": 0.4,
+          "resolved": "audio/sfx/riser.wav"
+        },
+        {
+          "name": "chime",
+          "at": 1.9,
+          "volume": 0.5,
+          "resolved": "audio/sfx/chime.wav"
+        }
+      ],
+      "id": 4,
+      "voice_duration": 0,
+      "start": 12.375,
+      "end": 16.375
+    },
+    {
+      "narration": "",
+      "duration": 5.0,
+      "visual": {
+        "type": "video",
+        "source": "clips/scene_05.mp4",
+        "fade": 0,
+        "description": "По пустыне шагает пиксельный тираннозавр, земля трясётся, герои прячутся за камнем"
+      },
+      "sfx": [
+        {
+          "name": "footstep",
+          "at": 0.3,
+          "volume": 0.9,
+          "resolved": "audio/sfx/footstep.wav"
+        },
+        {
+          "name": "footstep",
+          "at": 0.9,
+          "volume": 0.9,
+          "resolved": "audio/sfx/footstep.wav"
+        },
+        {
+          "name": "footstep",
+          "at": 1.5,
+          "volume": 0.9,
+          "resolved": "audio/sfx/footstep.wav"
+        },
+        {
+          "name": "roar",
+          "at": 2.1,
+          "volume": 0.9,
+          "resolved": "audio/sfx/roar.wav"
+        },
+        {
+          "name": "footstep",
+          "at": 3.3,
+          "volume": 0.9,
+          "resolved": "audio/sfx/footstep.wav"
+        },
+        {
+          "name": "footstep",
+          "at": 3.9,
+          "volume": 0.9,
+          "resolved": "audio/sfx/footstep.wav"
+        },
+        {
+          "name": "footstep",
+          "at": 4.5,
+          "volume": 0.9,
+          "resolved": "audio/sfx/footstep.wav"
+        }
+      ],
+      "id": 5,
+      "voice_duration": 0,
+      "start": 16.375,
+      "end": 21.375
+    },
+    {
+      "narration": "",
+      "duration": 3.0,
+      "visual": {
+        "type": "video",
+        "source": "clips/scene_06.mp4",
+        "fade": 0,
+        "description": "Мимо героев проносится котик"
+      },
+      "sfx": [
+        {
+          "name": "meow",
+          "at": 0.4,
+          "volume": 0.6,
+          "resolved": "audio/sfx/meow.wav"
+        },
+        {
+          "name": "swoosh",
+          "at": 1.0,
+          "volume": 0.6,
+          "resolved": "audio/sfx/swoosh.wav"
+        }
+      ],
+      "id": 6,
+      "voice_duration": 0,
+      "start": 21.375,
+      "end": 24.375
+    },
+    {
+      "speaker": "Артемия",
+      "narration": "Ни фига себе!",
+      "duration": 3.4,
+      "visual": {
+        "type": "video",
+        "source": "clips/scene_07.mp4",
+        "fade": 0,
+        "description": "Крупный план: удивлённая Артемия, Клод Код подпрыгивает"
+      },
+      "sfx": [
+        {
+          "name": "impact",
+          "at": 0.25,
+          "volume": 0.5,
+          "resolved": "audio/sfx/impact.wav"
+        },
+        {
+          "name": "pop",
+          "at": 1.6,
+          "volume": 0.4,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 7,
+      "voice_file": "audio/voice/scene_07.wav",
+      "voice_text": "edge:ru-RU-SvetlanaNeural|{\"provider\": \"edge\", \"rate\": \"+5%\", \"voice\": \"ru-RU-SvetlanaNeural\"}|Ни фига себе!",
+      "voice_duration": 0.847,
+      "start": 24.375,
+      "end": 27.775
+    }
+  ]
+}

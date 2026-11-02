@@ -1,0 +1,316 @@
+{
+  "title": "video-forge minimal",
+  "format": "9:16",
+  "fps": 30,
+  "subtitles": true,
+  "music": "bright",
+  "music_volume": 0.1,
+  "voice": {
+    "voice": "Артём",
+    "used": {
+      "narrator": "edge:en-US-AndrewMultilingualNeural (Артём)"
+    }
+  },
+  "scenes": [
+    {
+      "narration": "Хочешь сделать видео за пару минут? Знакомься — скилл видео фордж для Клод Код!",
+      "visual": {
+        "type": "text",
+        "caption": "video-forge",
+        "colors": [
+          "#1a1033",
+          "#d97757"
+        ],
+        "font_size": 110
+      },
+      "sfx": [
+        {
+          "name": "whoosh",
+          "at": 0,
+          "resolved": "audio/sfx/whoosh.wav"
+        },
+        {
+          "name": "impact",
+          "at": 2.6,
+          "volume": 0.5,
+          "resolved": "audio/sfx/impact.wav"
+        }
+      ],
+      "id": 1,
+      "voice_file": "audio/voice/scene_01.wav",
+      "voice_text": "edge:en-US-AndrewMultilingualNeural|{\"effect\": \"\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|Хочешь сделать видео за пару минут? Знакомься — скилл видео фордж для Клод Код!",
+      "voice_duration": 6.234,
+      "start": 0.0,
+      "end": 7.034,
+      "subtitle": "Хочешь сделать видео за пару минут? Знакомься — скилл video-forge для Claude Code!"
+    },
+    {
+      "narration": "Как пользоваться? Шаг первый: пришли сценарий или просто опиши идею.",
+      "visual": {
+        "type": "text",
+        "caption": "Шаг 1. Сценарий",
+        "colors": [
+          "#0f2027",
+          "#2c5364"
+        ]
+      },
+      "sfx": [
+        {
+          "name": "typing",
+          "at": 2.0,
+          "volume": 0.35,
+          "resolved": "audio/sfx/typing.wav"
+        }
+      ],
+      "id": 2,
+      "voice_file": "audio/voice/scene_02.wav",
+      "voice_text": "edge:en-US-AndrewMultilingualNeural|{\"effect\": \"\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|Как пользоваться? Шаг первый: пришли сценарий или просто опиши идею.",
+      "voice_duration": 4.888,
+      "start": 7.034,
+      "end": 12.722
+    },
+    {
+      "narration": "Шаг второй: выбери голос. Например, меня зовут Артём.",
+      "visual": {
+        "type": "text",
+        "caption": "Шаг 2. Голос",
+        "colors": [
+          "#3a1c71",
+          "#d76d77"
+        ]
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.2,
+          "volume": 0.4,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 3,
+      "voice_file": "audio/voice/scene_03.wav",
+      "voice_text": "edge:en-US-AndrewMultilingualNeural|{\"effect\": \"\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|Шаг второй: выбери голос. Например, меня зовут Артём.",
+      "voice_duration": 4.459,
+      "start": 12.722,
+      "end": 17.981
+    },
+    {
+      "narration": "Шаг третий: скилл сам разобьёт текст на сцены, сделает раскадровку, озвучку, звуки и музыку.",
+      "visual": {
+        "type": "text",
+        "caption": "Шаг 3. Сборка видео",
+        "colors": [
+          "#134e5e",
+          "#71b280"
+        ]
+      },
+      "sfx": [
+        {
+          "name": "camera",
+          "at": 2.5,
+          "volume": 0.5,
+          "resolved": "audio/sfx/camera.wav"
+        }
+      ],
+      "id": 4,
+      "voice_file": "audio/voice/scene_04.wav",
+      "voice_text": "edge:en-US-AndrewMultilingualNeural|{\"effect\": \"\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|Шаг третий: скилл сам разобьёт текст на сцены, сделает раскадровку, озвучку, звуки и музыку.",
+      "voice_duration": 7.309,
+      "start": 17.981,
+      "end": 26.09
+    },
+    {
+      "narration": "Сколько голосов? Сто двадцать голосов на русском языке!",
+      "visual": {
+        "type": "text",
+        "caption": "120 голосов на русском",
+        "colors": [
+          "#ff512f",
+          "#dd2476"
+        ],
+        "font_size": 120
+      },
+      "sfx": [
+        {
+          "name": "riser",
+          "at": 0.0,
+          "volume": 0.4,
+          "resolved": "audio/sfx/riser.wav"
+        },
+        {
+          "name": "impact",
+          "at": 1.9,
+          "volume": 0.6,
+          "resolved": "audio/sfx/impact.wav"
+        }
+      ],
+      "id": 5,
+      "voice_file": "audio/voice/scene_05.wav",
+      "voice_text": "edge:en-US-AndrewMultilingualNeural|{\"effect\": \"\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|Сколько голосов? Сто двадцать голосов на русском языке!",
+      "voice_duration": 3.936,
+      "start": 26.09,
+      "end": 30.826
+    },
+    {
+      "narration": "И ещё больше трёхсот голосов на ста сорока языках.",
+      "visual": {
+        "type": "text",
+        "caption": "300+ голосов, 140 языков",
+        "colors": [
+          "#1e3c72",
+          "#2a5298"
+        ]
+      },
+      "sfx": [
+        {
+          "name": "chime",
+          "at": 0.3,
+          "volume": 0.45,
+          "resolved": "audio/sfx/chime.wav"
+        }
+      ],
+      "id": 6,
+      "voice_file": "audio/voice/scene_06.wav",
+      "voice_text": "edge:en-US-AndrewMultilingualNeural|{\"effect\": \"\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|И ещё больше трёхсот голосов на ста сорока языках.",
+      "voice_duration": 3.472,
+      "start": 30.826,
+      "end": 35.098
+    },
+    {
+      "narration": "Хочешь голос робота, великана или злодея? Есть двадцать голосовых эффектов.",
+      "visual": {
+        "type": "text",
+        "caption": "20 голосовых эффектов",
+        "colors": [
+          "#42275a",
+          "#734b6d"
+        ]
+      },
+      "sfx": [
+        {
+          "name": "glitch",
+          "at": 1.0,
+          "volume": 0.4,
+          "resolved": "audio/sfx/glitch.wav"
+        }
+      ],
+      "id": 7,
+      "voice_file": "audio/voice/scene_07.wav",
+      "voice_text": "edge:en-US-AndrewMultilingualNeural|{\"effect\": \"\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|Хочешь голос робота, великана или злодея? Есть двадцать голосовых эффектов.",
+      "voice_duration": 6.514,
+      "start": 35.098,
+      "end": 42.412
+    },
+    {
+      "narration": "Почему он лучше? Голоса бесплатные, ключи не нужны. Нужны только Пайтон и эф эф эм пэг.",
+      "visual": {
+        "type": "text",
+        "caption": "Бесплатно и без ключей",
+        "colors": [
+          "#11998e",
+          "#38ef7d"
+        ]
+      },
+      "sfx": [
+        {
+          "name": "ding",
+          "at": 0.4,
+          "volume": 0.4,
+          "resolved": "audio/sfx/ding.wav"
+        }
+      ],
+      "id": 8,
+      "voice_file": "audio/voice/scene_08.wav",
+      "voice_text": "edge:en-US-AndrewMultilingualNeural|{\"effect\": \"\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|Почему он лучше? Голоса бесплатные, ключи не нужны. Нужны только Пайтон и эф эф эм пэг.",
+      "voice_duration": 7.956,
+      "start": 42.412,
+      "end": 51.168,
+      "subtitle": "Почему он лучше? Голоса бесплатные, ключи не нужны. Нужны только Python и ffmpeg."
+    },
+    {
+      "narration": "Двадцать один звуковой эффект, фоновая музыка, субтитры и анимация — всё внутри.",
+      "visual": {
+        "type": "text",
+        "caption": "Звуки, музыка, субтитры",
+        "colors": [
+          "#c94b4b",
+          "#4b134f"
+        ]
+      },
+      "sfx": [
+        {
+          "name": "swoosh",
+          "at": 0.2,
+          "volume": 0.5,
+          "resolved": "audio/sfx/swoosh.wav"
+        }
+      ],
+      "id": 9,
+      "voice_file": "audio/voice/scene_09.wav",
+      "voice_text": "edge:en-US-AndrewMultilingualNeural|{\"effect\": \"\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|Двадцать один звуковой эффект, фоновая музыка, субтитры и анимация — всё внутри.",
+      "voice_duration": 6.195,
+      "start": 51.168,
+      "end": 58.163
+    },
+    {
+      "narration": "Персонажи говорят разными голосами — можно сделать целый мультфильм.",
+      "visual": {
+        "type": "text",
+        "caption": "Диалоги и мультфильмы",
+        "colors": [
+          "#f7971e",
+          "#ffd200"
+        ],
+        "text_color": "white"
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.3,
+          "volume": 0.4,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 10,
+      "voice_file": "audio/voice/scene_10.wav",
+      "voice_text": "edge:en-US-AndrewMultilingualNeural|{\"effect\": \"\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|Персонажи говорят разными голосами — можно сделать целый мультфильм.",
+      "voice_duration": 4.628,
+      "start": 58.163,
+      "end": 63.591
+    },
+    {
+      "narration": "Набери слэш видео фордж и сделай своё видео прямо сейчас!",
+      "visual": {
+        "type": "text",
+        "caption": "/video-forge",
+        "colors": [
+          "#1a1033",
+          "#d97757"
+        ],
+        "font_size": 110
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.3,
+          "volume": 0.4,
+          "resolved": "audio/sfx/pop.wav"
+        },
+        {
+          "name": "applause",
+          "at": 1.8,
+          "volume": 0.3,
+          "resolved": "audio/sfx/applause.wav"
+        }
+      ],
+      "id": 11,
+      "voice_file": "audio/voice/scene_11.wav",
+      "voice_text": "edge:en-US-AndrewMultilingualNeural|{\"effect\": \"\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|Набери слэш видео фордж и сделай своё видео прямо сейчас!",
+      "voice_duration": 4.385,
+      "start": 63.591,
+      "end": 68.776,
+      "subtitle": "Набери /video-forge и сделай своё видео прямо сейчас!"
+    }
+  ],
+  "style": "minimal"
+}

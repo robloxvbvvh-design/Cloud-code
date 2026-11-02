@@ -1,0 +1,128 @@
+{
+  "title": "Почему небо голубое",
+  "format": "9:16",
+  "fps": 30,
+  "palette": [
+    "#0b1d3a",
+    "#1e6fd9"
+  ],
+  "voice": {
+    "provider": "auto",
+    "voice": "Adam",
+    "lang": "ru",
+    "used": {
+      "provider": "edge",
+      "voice": "ru-RU-DmitryNeural"
+    }
+  },
+  "music": "pad",
+  "music_volume": 0.15,
+  "subtitles": true,
+  "scenes": [
+    {
+      "narration": "Вы когда-нибудь задумывались, почему небо голубое?",
+      "visual": {
+        "type": "text",
+        "caption": "Почему небо голубое?",
+        "description": "Крупный заголовок на синем градиенте"
+      },
+      "sfx": [
+        {
+          "name": "whoosh",
+          "at": 0.0,
+          "resolved": "audio/sfx/whoosh.wav"
+        }
+      ],
+      "id": 1,
+      "voice_file": "audio/voice/scene_01.wav",
+      "voice_text": "Вы когда-нибудь задумывались, почему небо голубое?",
+      "voice_duration": 3.071,
+      "start": 0.0,
+      "end": 3.871
+    },
+    {
+      "narration": "Солнечный свет — это смесь всех цветов радуги.",
+      "visual": {
+        "type": "text",
+        "caption": "Свет = все цвета",
+        "colors": [
+          "#3a1c71",
+          "#ffaf7b"
+        ],
+        "description": "Солнце и радуга"
+      },
+      "sfx": [
+        {
+          "name": "chime",
+          "at": 0.3,
+          "resolved": "audio/sfx/chime.wav"
+        }
+      ],
+      "id": 2,
+      "voice_file": "audio/voice/scene_02.wav",
+      "voice_text": "Солнечный свет — это смесь всех цветов радуги.",
+      "voice_duration": 2.999,
+      "start": 3.871,
+      "end": 7.67
+    },
+    {
+      "narration": "Попадая в атмосферу, синий свет рассеивается сильнее остальных. Поэтому мы видим голубое небо.",
+      "visual": {
+        "type": "text",
+        "caption": "Рассеяние Рэлея",
+        "colors": [
+          "#0f2027",
+          "#2c5364"
+        ],
+        "description": "Схема рассеяния"
+      },
+      "sfx": [
+        {
+          "name": "riser",
+          "at": 1.0,
+          "resolved": "audio/sfx/riser.wav"
+        },
+        {
+          "name": "impact",
+          "at": 3.1,
+          "resolved": "audio/sfx/impact.wav"
+        }
+      ],
+      "id": 3,
+      "voice_file": "audio/voice/scene_03.wav",
+      "voice_text": "Попадая в атмосферу, синий свет рассеивается сильнее остальных. Поэтому мы видим голубое небо.",
+      "voice_duration": 6.688,
+      "start": 7.67,
+      "end": 15.158
+    },
+    {
+      "narration": "Подписывайтесь, чтобы узнать больше!",
+      "visual": {
+        "type": "text",
+        "caption": "Подписывайся!",
+        "colors": [
+          "#ff512f",
+          "#dd2476"
+        ]
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.4,
+          "resolved": "audio/sfx/pop.wav"
+        },
+        {
+          "name": "ding",
+          "at": 0.6,
+          "resolved": "audio/sfx/ding.wav"
+        }
+      ],
+      "id": 4,
+      "voice_file": "audio/voice/scene_04.wav",
+      "voice_text": "Подписывайтесь, чтобы узнать больше!",
+      "voice_duration": 2.126,
+      "start": 15.158,
+      "end": 18.084
+    }
+  ]
+}
