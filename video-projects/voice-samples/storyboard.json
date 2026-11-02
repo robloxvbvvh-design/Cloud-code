@@ -1,0 +1,723 @@
+{
+  "title": "Образцы голосов video-forge",
+  "format": "9:16",
+  "fps": 30,
+  "subtitles": true,
+  "music": "pad",
+  "music_volume": 0.08,
+  "voice": {
+    "voice": "Артём энергичный",
+    "used": {
+      "narrator": "edge:en-US-AndrewMultilingualNeural (Артём энергичный)",
+      "Дмитрий": "edge:ru-RU-DmitryNeural (Дмитрий)",
+      "Артём": "edge:en-US-AndrewMultilingualNeural (Артём)",
+      "Борис энергичный": "edge:en-US-BrianMultilingualNeural (Борис энергичный)",
+      "Виктор рассказчик": "edge:en-AU-WilliamMultilingualNeural (Виктор рассказчик)",
+      "Светлана": "edge:ru-RU-SvetlanaNeural (Светлана)",
+      "Алина": "edge:en-US-AvaMultilingualNeural (Алина)",
+      "Эмма энергичная": "edge:en-US-EmmaMultilingualNeural (Эмма энергичная)",
+      "Таисия молодая": "edge:pt-BR-ThalitaMultilingualNeural (Таисия молодая)",
+      "Робот": "edge:ru-RU-DmitryNeural (Робот)",
+      "Великан": "edge:ru-RU-DmitryNeural (Великан)",
+      "Гном": "edge:ru-RU-DmitryNeural (Гном)",
+      "Монстр": "edge:ru-RU-DmitryNeural (Монстр)",
+      "Пришелец": "edge:en-US-AndrewMultilingualNeural (Пришелец)",
+      "Призрак": "edge:en-AU-WilliamMultilingualNeural (Призрак)",
+      "Злодей": "edge:ru-RU-DmitryNeural (Злодей)",
+      "Дедушка": "edge:ru-RU-DmitryNeural (Дедушка)",
+      "Девочка": "edge:pt-BR-ThalitaMultilingualNeural (Девочка)",
+      "Мультяшка": "edge:en-US-EmmaMultilingualNeural (Мультяшка)",
+      "Радиоведущий": "edge:en-US-BrianMultilingualNeural (Радиоведущий)",
+      "Трейлер кино": "edge:ru-RU-DmitryNeural (Трейлер кино)",
+      "Космонавт": "edge:ru-RU-DmitryNeural (Космонавт)",
+      "Фея": "edge:fr-FR-VivienneMultilingualNeural (Фея)"
+    }
+  },
+  "characters": {
+    "Дмитрий": {
+      "voice": "Дмитрий"
+    },
+    "Артём": {
+      "voice": "Артём"
+    },
+    "Борис энергичный": {
+      "voice": "Борис энергичный"
+    },
+    "Виктор рассказчик": {
+      "voice": "Виктор рассказчик"
+    },
+    "Светлана": {
+      "voice": "Светлана"
+    },
+    "Алина": {
+      "voice": "Алина"
+    },
+    "Эмма энергичная": {
+      "voice": "Эмма энергичная"
+    },
+    "Таисия молодая": {
+      "voice": "Таисия молодая"
+    },
+    "Робот": {
+      "voice": "Робот"
+    },
+    "Великан": {
+      "voice": "Великан"
+    },
+    "Гном": {
+      "voice": "Гном"
+    },
+    "Монстр": {
+      "voice": "Монстр"
+    },
+    "Пришелец": {
+      "voice": "Пришелец"
+    },
+    "Призрак": {
+      "voice": "Призрак"
+    },
+    "Злодей": {
+      "voice": "Злодей"
+    },
+    "Дедушка": {
+      "voice": "Дедушка"
+    },
+    "Девочка": {
+      "voice": "Девочка"
+    },
+    "Мультяшка": {
+      "voice": "Мультяшка"
+    },
+    "Радиоведущий": {
+      "voice": "Радиоведущий"
+    },
+    "Трейлер кино": {
+      "voice": "Трейлер кино"
+    },
+    "Космонавт": {
+      "voice": "Космонавт"
+    },
+    "Фея": {
+      "voice": "Фея"
+    }
+  },
+  "scenes": [
+    {
+      "narration": "Сто двадцать голосов в скилле видео фордж. Послушайте некоторые из них!",
+      "visual": {
+        "type": "text",
+        "caption": "120 голосов",
+        "colors": [
+          "#0b1d3a",
+          "#1e6fd9"
+        ]
+      },
+      "sfx": [
+        {
+          "name": "whoosh",
+          "resolved": "audio/sfx/whoosh.wav"
+        }
+      ],
+      "id": 1,
+      "voice_file": "audio/voice/scene_01.wav",
+      "voice_text": "edge:en-US-AndrewMultilingualNeural|{\"effect\": \"\", \"instructions\": null, \"model\": null, \"pitch\": \"+4Hz\", \"rate\": \"+18%\", \"stability\": null, \"style\": null}|Сто двадцать голосов в скилле видео фордж. Послушайте некоторые из них!",
+      "voice_duration": 4.684,
+      "start": 0.0,
+      "end": 5.484
+    },
+    {
+      "speaker": "Дмитрий",
+      "narration": "Привет! Я Дмитрий, родной русский голос.",
+      "visual": {
+        "type": "text",
+        "caption": "Дмитрий",
+        "colors": [
+          "#0f2027",
+          "#2c5364"
+        ],
+        "fade": 0.15
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.05,
+          "volume": 0.35,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 2,
+      "voice_file": "audio/voice/scene_02.wav",
+      "voice_text": "edge:ru-RU-DmitryNeural|{\"effect\": \"\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|Привет! Я Дмитрий, родной русский голос.",
+      "voice_duration": 3.69,
+      "start": 5.484,
+      "end": 9.974
+    },
+    {
+      "speaker": "Артём",
+      "narration": "Привет! Я Артём, тёплый и уверенный.",
+      "visual": {
+        "type": "text",
+        "caption": "Артём",
+        "colors": [
+          "#3a1c71",
+          "#d76d77"
+        ],
+        "fade": 0.15
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.05,
+          "volume": 0.35,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 3,
+      "voice_file": "audio/voice/scene_03.wav",
+      "voice_text": "edge:en-US-AndrewMultilingualNeural|{\"effect\": \"\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|Привет! Я Артём, тёплый и уверенный.",
+      "voice_duration": 3.318,
+      "start": 9.974,
+      "end": 14.092
+    },
+    {
+      "speaker": "Борис энергичный",
+      "narration": "Я Борис, и я говорю бодро — для шортсов!",
+      "visual": {
+        "type": "text",
+        "caption": "Борис энергичный",
+        "colors": [
+          "#134e5e",
+          "#71b280"
+        ],
+        "fade": 0.15
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.05,
+          "volume": 0.35,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 4,
+      "voice_file": "audio/voice/scene_04.wav",
+      "voice_text": "edge:en-US-BrianMultilingualNeural|{\"effect\": \"\", \"instructions\": null, \"model\": null, \"pitch\": \"+4Hz\", \"rate\": \"+18%\", \"stability\": null, \"style\": null}|Я Борис, и я говорю бодро — для шортсов!",
+      "voice_duration": 2.716,
+      "start": 14.092,
+      "end": 17.608
+    },
+    {
+      "speaker": "Виктор рассказчик",
+      "narration": "Я Виктор. Расскажу вам историю...",
+      "visual": {
+        "type": "text",
+        "caption": "Виктор рассказчик",
+        "colors": [
+          "#232526",
+          "#414345"
+        ],
+        "fade": 0.15
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.05,
+          "volume": 0.35,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 5,
+      "voice_file": "audio/voice/scene_05.wav",
+      "voice_text": "edge:en-AU-WilliamMultilingualNeural|{\"effect\": \"\", \"instructions\": null, \"model\": null, \"pitch\": \"-6Hz\", \"rate\": \"-12%\", \"stability\": null, \"style\": null}|Я Виктор. Расскажу вам историю...",
+      "voice_duration": 3.463,
+      "start": 17.608,
+      "end": 21.871
+    },
+    {
+      "speaker": "Светлана",
+      "narration": "Здравствуйте! Я Светлана.",
+      "visual": {
+        "type": "text",
+        "caption": "Светлана",
+        "colors": [
+          "#ff512f",
+          "#dd2476"
+        ],
+        "fade": 0.15
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.05,
+          "volume": 0.35,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 6,
+      "voice_file": "audio/voice/scene_06.wav",
+      "voice_text": "edge:ru-RU-SvetlanaNeural|{\"effect\": \"\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|Здравствуйте! Я Светлана.",
+      "voice_duration": 2.869,
+      "start": 21.871,
+      "end": 25.54
+    },
+    {
+      "speaker": "Алина",
+      "narration": "Привет! Я Алина, очень выразительная.",
+      "visual": {
+        "type": "text",
+        "caption": "Алина",
+        "colors": [
+          "#1e3c72",
+          "#2a5298"
+        ],
+        "fade": 0.15
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.05,
+          "volume": 0.35,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 7,
+      "voice_file": "audio/voice/scene_07.wav",
+      "voice_text": "edge:en-US-AvaMultilingualNeural|{\"effect\": \"\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|Привет! Я Алина, очень выразительная.",
+      "voice_duration": 3.142,
+      "start": 25.54,
+      "end": 29.482
+    },
+    {
+      "speaker": "Эмма энергичная",
+      "narration": "Я Эмма! Давай сделаем видео!",
+      "visual": {
+        "type": "text",
+        "caption": "Эмма энергичная",
+        "colors": [
+          "#42275a",
+          "#734b6d"
+        ],
+        "fade": 0.15
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.05,
+          "volume": 0.35,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 8,
+      "voice_file": "audio/voice/scene_08.wav",
+      "voice_text": "edge:en-US-EmmaMultilingualNeural|{\"effect\": \"\", \"instructions\": null, \"model\": null, \"pitch\": \"+4Hz\", \"rate\": \"+18%\", \"stability\": null, \"style\": null}|Я Эмма! Давай сделаем видео!",
+      "voice_duration": 2.092,
+      "start": 29.482,
+      "end": 32.374
+    },
+    {
+      "speaker": "Таисия молодая",
+      "narration": "Привет, я Таисия!",
+      "visual": {
+        "type": "text",
+        "caption": "Таисия молодая",
+        "colors": [
+          "#c94b4b",
+          "#4b134f"
+        ],
+        "fade": 0.15
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.05,
+          "volume": 0.35,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 9,
+      "voice_file": "audio/voice/scene_09.wav",
+      "voice_text": "edge:pt-BR-ThalitaMultilingualNeural|{\"effect\": \"\", \"instructions\": null, \"model\": null, \"pitch\": \"+12Hz\", \"rate\": \"+5%\", \"stability\": null, \"style\": null}|Привет, я Таисия!",
+      "voice_duration": 1.553,
+      "start": 32.374,
+      "end": 34.727
+    },
+    {
+      "speaker": "Робот",
+      "narration": "Я робот. Тестирую систему.",
+      "visual": {
+        "type": "text",
+        "caption": "Робот",
+        "colors": [
+          "#0f2027",
+          "#2c5364"
+        ],
+        "fade": 0.15
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.05,
+          "volume": 0.35,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 10,
+      "voice_file": "audio/voice/scene_10.wav",
+      "voice_text": "edge:ru-RU-DmitryNeural|{\"effect\": \"robot\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|Я робот. Тестирую систему.",
+      "voice_duration": 2.902,
+      "start": 34.727,
+      "end": 38.429
+    },
+    {
+      "speaker": "Великан",
+      "narration": "Я великан! Бум!",
+      "visual": {
+        "type": "text",
+        "caption": "Великан",
+        "colors": [
+          "#3a1c71",
+          "#d76d77"
+        ],
+        "fade": 0.15
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.05,
+          "volume": 0.35,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 11,
+      "voice_file": "audio/voice/scene_11.wav",
+      "voice_text": "edge:ru-RU-DmitryNeural|{\"effect\": \"giant\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|Я великан! Бум!",
+      "voice_duration": 2.397,
+      "start": 38.429,
+      "end": 41.626
+    },
+    {
+      "speaker": "Гном",
+      "narration": "А я маленький гном!",
+      "visual": {
+        "type": "text",
+        "caption": "Гном",
+        "colors": [
+          "#134e5e",
+          "#71b280"
+        ],
+        "fade": 0.15
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.05,
+          "volume": 0.35,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 12,
+      "voice_file": "audio/voice/scene_12.wav",
+      "voice_text": "edge:ru-RU-DmitryNeural|{\"effect\": \"gnome\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|А я маленький гном!",
+      "voice_duration": 1.279,
+      "start": 41.626,
+      "end": 43.705
+    },
+    {
+      "speaker": "Монстр",
+      "narration": "Р-р-р! Я монстр!",
+      "visual": {
+        "type": "text",
+        "caption": "Монстр",
+        "colors": [
+          "#232526",
+          "#414345"
+        ],
+        "fade": 0.15
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.05,
+          "volume": 0.35,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 13,
+      "voice_file": "audio/voice/scene_13.wav",
+      "voice_text": "edge:ru-RU-DmitryNeural|{\"effect\": \"monster\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|Р-р-р! Я монстр!",
+      "voice_duration": 2.438,
+      "start": 43.705,
+      "end": 46.943
+    },
+    {
+      "speaker": "Пришелец",
+      "narration": "Приветствую, земляне.",
+      "visual": {
+        "type": "text",
+        "caption": "Пришелец",
+        "colors": [
+          "#ff512f",
+          "#dd2476"
+        ],
+        "fade": 0.15
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.05,
+          "volume": 0.35,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 14,
+      "voice_file": "audio/voice/scene_14.wav",
+      "voice_text": "edge:en-US-AndrewMultilingualNeural|{\"effect\": \"alien\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|Приветствую, земляне.",
+      "voice_duration": 1.548,
+      "start": 46.943,
+      "end": 49.291
+    },
+    {
+      "speaker": "Призрак",
+      "narration": "Я призрак этого дома...",
+      "visual": {
+        "type": "text",
+        "caption": "Призрак",
+        "colors": [
+          "#1e3c72",
+          "#2a5298"
+        ],
+        "fade": 0.15
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.05,
+          "volume": 0.35,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 15,
+      "voice_file": "audio/voice/scene_15.wav",
+      "voice_text": "edge:en-AU-WilliamMultilingualNeural|{\"effect\": \"ghost\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"-8%\", \"stability\": null, \"style\": null}|Я призрак этого дома...",
+      "voice_duration": 2.628,
+      "start": 49.291,
+      "end": 52.719
+    },
+    {
+      "speaker": "Злодей",
+      "narration": "Ха-ха-ха! Мой план сработает!",
+      "visual": {
+        "type": "text",
+        "caption": "Злодей",
+        "colors": [
+          "#42275a",
+          "#734b6d"
+        ],
+        "fade": 0.15
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.05,
+          "volume": 0.35,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 16,
+      "voice_file": "audio/voice/scene_16.wav",
+      "voice_text": "edge:ru-RU-DmitryNeural|{\"effect\": \"villain\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"-5%\", \"stability\": null, \"style\": null}|Ха-ха-ха! Мой план сработает!",
+      "voice_duration": 3.218,
+      "start": 52.719,
+      "end": 56.737
+    },
+    {
+      "speaker": "Дедушка",
+      "narration": "Эх, в моё время видео не было.",
+      "visual": {
+        "type": "text",
+        "caption": "Дедушка",
+        "colors": [
+          "#c94b4b",
+          "#4b134f"
+        ],
+        "fade": 0.15
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.05,
+          "volume": 0.35,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 17,
+      "voice_file": "audio/voice/scene_17.wav",
+      "voice_text": "edge:ru-RU-DmitryNeural|{\"effect\": \"elder\", \"instructions\": null, \"model\": null, \"pitch\": \"-8Hz\", \"rate\": \"-15%\", \"stability\": null, \"style\": null}|Эх, в моё время видео не было.",
+      "voice_duration": 2.389,
+      "start": 56.737,
+      "end": 59.926
+    },
+    {
+      "speaker": "Девочка",
+      "narration": "А я девочка, мне шесть лет!",
+      "visual": {
+        "type": "text",
+        "caption": "Девочка",
+        "colors": [
+          "#0f2027",
+          "#2c5364"
+        ],
+        "fade": 0.15
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.05,
+          "volume": 0.35,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 18,
+      "voice_file": "audio/voice/scene_18.wav",
+      "voice_text": "edge:pt-BR-ThalitaMultilingualNeural|{\"effect\": \"child\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|А я девочка, мне шесть лет!",
+      "voice_duration": 2.076,
+      "start": 59.926,
+      "end": 62.802
+    },
+    {
+      "speaker": "Мультяшка",
+      "narration": "Привет-привет, я мультяшка!",
+      "visual": {
+        "type": "text",
+        "caption": "Мультяшка",
+        "colors": [
+          "#3a1c71",
+          "#d76d77"
+        ],
+        "fade": 0.15
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.05,
+          "volume": 0.35,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 19,
+      "voice_file": "audio/voice/scene_19.wav",
+      "voice_text": "edge:en-US-EmmaMultilingualNeural|{\"effect\": \"cartoon\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|Привет-привет, я мультяшка!",
+      "voice_duration": 2.169,
+      "start": 62.802,
+      "end": 65.771
+    },
+    {
+      "speaker": "Радиоведущий",
+      "narration": "В эфире радио Видео Фордж!",
+      "visual": {
+        "type": "text",
+        "caption": "Радиоведущий",
+        "colors": [
+          "#134e5e",
+          "#71b280"
+        ],
+        "fade": 0.15
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.05,
+          "volume": 0.35,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 20,
+      "voice_file": "audio/voice/scene_20.wav",
+      "voice_text": "edge:en-US-BrianMultilingualNeural|{\"effect\": \"radio\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+10%\", \"stability\": null, \"style\": null}|В эфире радио Видео Фордж!",
+      "voice_duration": 1.699,
+      "start": 65.771,
+      "end": 68.27
+    },
+    {
+      "speaker": "Трейлер кино",
+      "narration": "В мире, где голосов больше ста...",
+      "visual": {
+        "type": "text",
+        "caption": "Трейлер кино",
+        "colors": [
+          "#232526",
+          "#414345"
+        ],
+        "fade": 0.15
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.05,
+          "volume": 0.35,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 21,
+      "voice_file": "audio/voice/scene_21.wav",
+      "voice_text": "edge:ru-RU-DmitryNeural|{\"effect\": \"deep,cave\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"-15%\", \"stability\": null, \"style\": null}|В мире, где голосов больше ста...",
+      "voice_duration": 3.257,
+      "start": 68.27,
+      "end": 72.327
+    },
+    {
+      "speaker": "Космонавт",
+      "narration": "Земля, приём. Связь в норме.",
+      "visual": {
+        "type": "text",
+        "caption": "Космонавт",
+        "colors": [
+          "#ff512f",
+          "#dd2476"
+        ],
+        "fade": 0.15
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.05,
+          "volume": 0.35,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 22,
+      "voice_file": "audio/voice/scene_22.wav",
+      "voice_text": "edge:ru-RU-DmitryNeural|{\"effect\": \"radio,space\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|Земля, приём. Связь в норме.",
+      "voice_duration": 4.787,
+      "start": 72.327,
+      "end": 77.914
+    },
+    {
+      "speaker": "Фея",
+      "narration": "Я фея, и я исполню желание.",
+      "visual": {
+        "type": "text",
+        "caption": "Фея",
+        "colors": [
+          "#1e3c72",
+          "#2a5298"
+        ],
+        "fade": 0.15
+      },
+      "sfx": [
+        {
+          "name": "pop",
+          "at": 0.05,
+          "volume": 0.35,
+          "resolved": "audio/sfx/pop.wav"
+        }
+      ],
+      "id": 23,
+      "voice_file": "audio/voice/scene_23.wav",
+      "voice_text": "edge:fr-FR-VivienneMultilingualNeural|{\"effect\": \"bright,space\", \"instructions\": null, \"model\": null, \"pitch\": \"+0Hz\", \"rate\": \"+0%\", \"stability\": null, \"style\": null}|Я фея, и я исполню желание.",
+      "voice_duration": 3.777,
+      "start": 77.914,
+      "end": 82.491
+    }
+  ]
+}

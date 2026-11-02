@@ -13,7 +13,8 @@
   "output": "final.mp4",
   "voice": {
     "provider": "auto",          // auto | elevenlabs | openai | edge | espeak | silent
-    "voice": "Adam",             // имя/ID голоса
+    "voice": "Артём энергичный", // имя из каталога (120 голосов: vf.py voices), ID edge/ElevenLabs/OpenAI
+    "effect": "robot",           // эффект(ы) голоса: robot, giant, gnome, monster, alien, ghost, deep,cave …
     "lang": "ru",                // для подбора запасного голоса
     "model": "eleven_multilingual_v2",          // elevenlabs (или gpt-4o-mini-tts для openai)
     "stability": 0.45, "similarity": 0.8, "style": 0.2,   // elevenlabs
@@ -22,8 +23,8 @@
     "volume": 1.0
   },
   "characters": {               // голоса персонажей для диалогов
-    "Клод Код": { "provider": "edge", "voice": "ru-RU-DmitryNeural" },
-    "Артемия":  { "provider": "edge", "voice": "ru-RU-SvetlanaNeural", "rate": "+5%" }
+    "Клод Код": { "voice": "Робот" },
+    "Артемия":  { "voice": "Алина", "rate": "+5%" }  // поля поверх каталога
   },
   "scenes": [
     {

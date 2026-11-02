@@ -61,6 +61,69 @@ EDGE_FALLBACK = {
 }
 FEMALE_NAMES = {"rachel", "bella", "domi", "elli", "nova", "shimmer", "coral", "sage"}
 
+# Named voice catalog (120 Russian-speaking voices: base voices, speaking manners, characters)
+CATALOG_PATH = Path(__file__).resolve().parent.parent / "voices" / "catalog.json"
+
+
+def _pitch(k: float, extra: str = "") -> str:
+    return f"asetrate=44100*{k},aresample=44100,atempo={1 / k:.4f}" + ("," + extra if extra else "")
+
+
+# Post-processing voice effects (ffmpeg audio filters), combinable: "deep,robot"
+VOICE_EFFECTS = {
+    "robot": "afftfilt=real='hypot(re,im)*sin(0)':imag='hypot(re,im)*cos(0)':win_size=512:overlap=0.75,"
+             "aecho=0.8:0.5:15:0.3",
+    "radio": "highpass=f=300,lowpass=f=3400,acompressor=threshold=0.1:ratio=6,volume=1.4",
+    "phone": "highpass=f=400,lowpass=f=3000,aresample=8000,aresample=44100",
+    "giant": _pitch(0.72, "aecho=0.8:0.6:60:0.3"),
+    "gnome": _pitch(1.45),
+    "chipmunk": _pitch(1.75),
+    "monster": _pitch(0.6, "acrusher=bits=8:mix=0.25:mode=log,aecho=0.8:0.5:40:0.3"),
+    "alien": _pitch(1.12, "vibrato=f=8:d=0.6,flanger=delay=3:depth=4:speed=1"),
+    "cave": "aecho=0.8:0.85:280|560:0.45|0.25",
+    "underwater": "lowpass=f=700,vibrato=f=3:d=0.25",
+    "megaphone": "highpass=f=600,lowpass=f=3800,acrusher=bits=9:mix=0.35:mode=log,volume=1.3",
+    "ghost": _pitch(0.92, "tremolo=f=5:d=0.35,aecho=0.8:0.9:450|900:0.45|0.3"),
+    "elder": "vibrato=f=5.5:d=0.18,lowpass=f=6000",
+    "child": _pitch(1.28),
+    "villain": _pitch(0.82, "aecho=0.8:0.7:90:0.25"),
+    "cartoon": _pitch(1.35, "vibrato=f=6:d=0.1"),
+    "stadium": "aecho=0.8:0.7:110|230|350:0.35|0.25|0.15",
+    "space": "aecho=0.8:0.9:900|1400:0.35|0.25,chorus=0.6:0.9:50|60:0.4|0.32:0.25|0.4:2|1.3",
+    "deep": _pitch(0.86),
+    "bright": _pitch(1.12),
+}
+
+
+def _norm(name: str) -> str:
+    return re.sub(r"[\s_\-]+", " ", str(name).lower().replace("ё", "е")).strip()
+
+
+def load_catalog() -> list[dict]:
+    try:
+        return json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return []
+
+
+def catalog_entry(name: str) -> dict | None:
+    n = _norm(name)
+    return next((c for c in load_catalog() if _norm(c["name"]) == n), None) if n else None
+
+
+def expand_voice(base: dict, override: dict | None = None) -> dict:
+    """Merge voice settings; a catalog name ("Артём энергичный", "Робот") expands to its
+    provider/voice/rate/pitch/effect. Explicit fields in `override` still win."""
+    override = override or {}
+    name = override.get("voice", base.get("voice", ""))
+    entry = catalog_entry(name)
+    if not entry:
+        return {**base, **override}
+    keep = {k: v for k, v in base.items() if k not in ("provider", "voice", "rate", "pitch", "effect", "used")}
+    fields = {k: entry[k] for k in ("provider", "voice", "rate", "pitch", "effect") if entry.get(k) is not None}
+    return {**keep, **fields, **{k: v for k, v in override.items() if k != "voice"}, "label": entry["name"]}
+
+
 FONT_CANDIDATES = [
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
     "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
@@ -225,7 +288,19 @@ def cmd_check(_args) -> None:
 
 
 def cmd_voices(args) -> None:
-    prov = args.provider or available_providers()[0]
+    if not args.provider:  # named catalog
+        q = _norm(args.search or "")
+        rows = [c for c in load_catalog()
+                if (not args.gender or c["gender"] == args.gender[0].lower())
+                and (not args.group or c["group"] == args.group)
+                and (not q or q in _norm(c["name"] + " " + c["desc"] + " " + c["effect"]))]
+        for c in rows:
+            print(f"{c['name']:<26} {'муж' if c['gender'] == 'm' else 'жен'}  {c['group']:<9} {c['desc']}")
+        total = len(load_catalog())
+        print(f"\n{len(rows)} of {total} catalog voices (all speak Russian). Also: --provider edge "
+              f"(300+ voices, 140+ languages), elevenlabs, openai. Effects: {', '.join(VOICE_EFFECTS)}")
+        return
+    prov = args.provider
     if prov == "elevenlabs":
         key = os.environ.get("ELEVENLABS_API_KEY")
         if key:
@@ -248,7 +323,8 @@ def cmd_voices(args) -> None:
         for v in voices:
             if args.lang and not v["Locale"].lower().startswith(args.lang.lower()):
                 continue
-            print(f"{v['ShortName']:<36} {v['Gender']}")
+            ml = "  multilingual (speaks Russian too)" if "Multilingual" in v["ShortName"] else ""
+            print(f"{v['ShortName']:<40} {v['Gender']:<7} {v['LocaleName']}{ml}")
     elif prov == "espeak":
         run([shutil.which("espeak-ng") or "espeak", "--voices"], quiet=False)
     else:
@@ -327,19 +403,25 @@ def tts_one(provider: str, voice: str, text: str, cfg: dict, out: Path) -> None:
     else:  # silent placeholder sized to reading speed (~2.5 words/s)
         secs = max(1.5, len(text.split()) / 2.5)
         ffmpeg("-f", "lavfi", "-i", f"anullsrc=r=44100:cl=mono", "-t", f"{secs:.2f}", "-f", "wav", str(tmp))
-    # normalize to 44.1k mono wav, trim leading/trailing silence a bit
-    ffmpeg("-i", str(tmp), "-af",
-           "silenceremove=start_periods=1:start_threshold=-50dB,areverse,"
-           "silenceremove=start_periods=1:start_threshold=-50dB,areverse,"
-           "loudnorm=I=-16:TP=-1.5:LRA=11" if provider != "silent" else "anull",
-           "-ar", "44100", "-ac", "1", str(out))
+    # normalize to 44.1k mono wav, trim leading/trailing silence, apply voice effects
+    effects = cfg.get("effect") or ""
+    effects = effects.split(",") if isinstance(effects, str) else list(effects)
+    fx = []
+    for e in (x.strip() for x in effects if x and x.strip()):
+        if e not in VOICE_EFFECTS:
+            die(f"unknown voice effect '{e}'. available: {', '.join(VOICE_EFFECTS)}")
+        fx.append(VOICE_EFFECTS[e])
+    chain = ("aresample=44100,silenceremove=start_periods=1:start_threshold=-50dB,areverse,"
+             "silenceremove=start_periods=1:start_threshold=-50dB,areverse,"
+             + "".join(f + "," for f in fx) + "loudnorm=I=-16:TP=-1.5:LRA=11") if provider != "silent" else "anull"
+    ffmpeg("-i", str(tmp), "-af", chain, "-ar", "44100", "-ac", "1", str(out))
     tmp.unlink(missing_ok=True)
 
 
 def cmd_tts(args) -> None:
     project = Path(args.project)
     data = load(project)
-    cfg = data.get("voice", {})
+    cfg = expand_voice({k: v for k, v in data.get("voice", {}).items() if k != "used"})
     vdir = project / "audio" / "voice"
     vdir.mkdir(parents=True, exist_ok=True)
     all_text = " ".join(s.get("narration", "") for s in data["scenes"])
@@ -359,7 +441,7 @@ def cmd_tts(args) -> None:
         override = dict(characters.get(s.get("speaker", ""), {}))
         if isinstance(s.get("voice"), dict):
             override.update(s["voice"])
-        scfg = {**cfg, **override}
+        scfg = expand_voice(cfg, override) if override else cfg
         if override:
             key = json.dumps(override, sort_keys=True, ensure_ascii=False)
             if key not in resolved:
@@ -367,8 +449,9 @@ def cmd_tts(args) -> None:
             provider, voice = resolved[key]
         else:
             provider, voice = default
-        used[s.get("speaker") or "narrator"] = f"{provider}:{voice}"
-        cache_key = f"{provider}:{voice}|{json.dumps(override, sort_keys=True, ensure_ascii=False)}|{text}"
+        used[s.get("speaker") or "narrator"] = f"{provider}:{voice}" + (f" ({scfg['label']})" if scfg.get("label") else "")
+        sig = {k: scfg.get(k) for k in ("rate", "pitch", "effect", "model", "stability", "style", "instructions")}
+        cache_key = f"{provider}:{voice}|{json.dumps(sig, sort_keys=True, ensure_ascii=False)}|{text}"
         if out.exists() and not args.force and s.get("voice_text") == cache_key:
             print(f"  scene {s['id']}: cached")
         else:
@@ -401,8 +484,7 @@ def cmd_tts(args) -> None:
         s["voice_file"] = str(out.relative_to(project))
         s["voice_text"] = cache_key
         s["voice_duration"] = round(duration(out), 3)
-    data.setdefault("voice", {})["used"] = used if len(used) > 1 else {
-        "provider": default[0], "voice": default[1]} if not used else dict(zip(("provider", "voice"), next(iter(used.values())).split(":", 1)))
+    data.setdefault("voice", {})["used"] = used or {"narrator": f"{default[0]}:{default[1]}"}
     save(project, data)
 
 
@@ -694,6 +776,29 @@ def cmd_render(args) -> None:
     print(f"\nDONE: {out}  ({duration(out):.1f}s)\nstoryboard: {project / 'storyboard.md'}, {project / 'storyboard.png'}")
 
 
+def cmd_demo(args) -> None:
+    """Synthesize a short sample with a catalog voice (or provider voice id)."""
+    cfg = expand_voice({"voice": args.voice, **({"effect": args.effect} if args.effect else {})})
+    if not cfg.get("label") and not args.effect and "-" not in args.voice and args.voice.lower() not in ELEVEN_VOICES \
+            and args.voice.lower() not in OPENAI_VOICES:
+        hits = [c["name"] for c in load_catalog() if _norm(args.voice) in _norm(c["name"])]
+        die(f"voice '{args.voice}' not found. " + (f"Did you mean: {', '.join(hits[:10])}?" if hits else
+                                                   "See: vf.py voices"))
+    provider, voice = resolve_voice(cfg, args.text)
+    out = Path(args.out or f"voice-demos/{re.sub(r'[^0-9A-Za-zА-Яа-яЁё]+', '_', args.voice)}.wav")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    for attempt in range(8):
+        try:
+            tts_one(provider, voice, args.text, cfg, out)
+            break
+        except (Exception, SystemExit):
+            time.sleep(1.0 + attempt * 0.5)
+    else:
+        die("TTS failed, try again")
+    print(f"{cfg.get('label', args.voice)} -> {provider}:{voice} rate={cfg.get('rate', '')} pitch={cfg.get('pitch', '')} "
+          f"effect={cfg.get('effect') or '-'}\n{out}  ({duration(out):.1f}s)")
+
+
 def cmd_all(args) -> None:
     cmd_tts(args)
     cmd_sfx(args)
@@ -705,10 +810,19 @@ def main() -> None:
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("check").set_defaults(fn=cmd_check)
     sub.add_parser("sfx-list").set_defaults(fn=cmd_sfx_list)
-    p = sub.add_parser("voices")
+    p = sub.add_parser("voices", help="list the named voice catalog, or a provider's voices")
     p.add_argument("--provider", choices=["elevenlabs", "openai", "edge", "espeak", "silent"])
     p.add_argument("--lang", default="")
+    p.add_argument("--gender", choices=["m", "f", "male", "female"])
+    p.add_argument("--group", choices=["базовый", "манера", "персонаж"])
+    p.add_argument("--search", default="", help="filter catalog by name/description/effect")
     p.set_defaults(fn=cmd_voices)
+    p = sub.add_parser("demo", help="speak a sample with a voice: vf.py demo \"Артём энергичный\"")
+    p.add_argument("voice")
+    p.add_argument("--text", default="Привет! Так звучит мой голос. Давай сделаем крутое видео!")
+    p.add_argument("--effect", default="", help="extra effect(s), e.g. robot or deep,cave")
+    p.add_argument("--out", default="")
+    p.set_defaults(fn=cmd_demo)
     for name, fn in [("tts", cmd_tts), ("sfx", cmd_sfx), ("plan", cmd_plan), ("render", cmd_render), ("all", cmd_all)]:
         p = sub.add_parser(name)
         p.add_argument("project")

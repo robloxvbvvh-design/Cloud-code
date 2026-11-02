@@ -30,13 +30,32 @@ cp -r Cloud-code/.claude/skills/video-forge ~/.claude/skills/
 
 Если открыть этот репозиторий в Claude Code, скилл подключится сам: он лежит в `.claude/skills/`.
 
-### Голоса
+### Голоса — 120 русских + 300 на других языках
+
+Скилл включает **каталог из 120 голосов, которые говорят по-русски**. Все они бесплатные, ключи не нужны (нужен только `pip install edge-tts`):
+
+- **14 основных голосов**: Дмитрий, Артём, Борис, Виктор, Филипп, Роман, Георгий, Хён, Светлана, Алина, Эмма, Серафима, Вера, Таисия.
+- **56 вариантов манеры речи** для каждого из них: «молодой», «зрелый», «энергичный», «рассказчик». Например, «Артём энергичный».
+- **50 голосов персонажей**: Робот, Андроид, Киборг, Великан, Тролль, Гном, Бурундук, Монстр, Демон, Зомби, Пришелец, Призрак, Злодей, Тёмный лорд, Дедушка, Бабушка, Мальчик, Девочка, Мультяшка, Радиоведущий, Голос по телефону, Диктор стадиона, Мегафон, Русалка, Космонавт, Трейлер кино, Сказочник, Фея и другие.
+
+Послушать образцы 22 голосов: [`video-projects/voice-samples/final.mp4`](video-projects/voice-samples/final.mp4).
+
+```bash
+python3 $VF voices                        # весь каталог
+python3 $VF voices --search злодей        # поиск
+python3 $VF demo "Артём энергичный"       # послушать голос
+python3 $VF demo "Дмитрий" --effect robot # голос с любым из 20 эффектов
+```
+
+В `storyboard.json` достаточно указать имя: `"voice": {"voice": "Робот"}`. Для диалога задайте каждому персонажу свой голос: `"characters": {"Артемия": {"voice": "Алина"}}`.
+
+Другие голоса:
 
 | Движок | Что нужно | Голоса |
 |---|---|---|
-| ElevenLabs | `export ELEVENLABS_API_KEY=...` | Adam, Rachel, Antoni, Josh, Bella, Arnold, Domi, Elli, Sam или любой voice_id из вашей библиотеки |
+| edge-tts | `pip install edge-tts`, бесплатно | 300+ голосов на 140+ языках: `vf.py voices --provider edge --lang ja` |
+| ElevenLabs | `export ELEVENLABS_API_KEY=...` | Adam, Rachel, Antoni, Josh, Bella и любой voice_id из вашей библиотеки |
 | OpenAI | `export OPENAI_API_KEY=...` | alloy, ash, coral, echo, fable, nova, onyx, sage, shimmer |
-| edge-tts | `pip install edge-tts`, бесплатно | ru-RU-DmitryNeural, ru-RU-SvetlanaNeural и сотни других |
 | silent | ничего | без озвучки |
 
 Если выбранный голос недоступен (например, Adam без ключа ElevenLabs), скилл подставит ближайший доступный и сообщит об этом.
