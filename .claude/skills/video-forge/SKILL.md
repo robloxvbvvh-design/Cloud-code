@@ -88,6 +88,7 @@ argument-hint: "[идея или сценарий видео]"
    `video-projects/<slug>/storyboard.json` по схеме из
    [references/storyboard-schema.md](references/storyboard-schema.md). Для каждой сцены придумай:
    - `narration` — текст озвучки (дословно из сценария);
+     английские названия пиши, как их читать («видео фордж», «Клод Код»), а в `subtitle` — как писать;
    - `visual` — фон: `text` (градиент + крупный заголовок), `image`/`video` (файлы пользователя,
      с движением `zoom_in`, `zoom_out`, `pan_left`, `pan_right`), `color`; `caption` — короткий
      текст на экране (2–5 слов, **без эмодзи** — ffmpeg их не рисует); `colors` — 2 цвета

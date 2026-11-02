@@ -589,7 +589,7 @@ EMOJI_RE = re.compile("[\U0001F000-\U0001FAFF\u2600-\u27BF\uFE0F\u200D]+")
 def wrap(text: str, fontsize: int, width: int) -> str:
     text = re.sub(r"\s{2,}", " ", EMOJI_RE.sub("", text or "")).strip()  # drawtext has no color-emoji support
     chars = max(8, int(width * 0.78 / (fontsize * 0.6)))
-    return "\n".join(textwrap.wrap(text, chars)) if text else ""
+    return "\n".join(textwrap.wrap(text, chars, break_on_hyphens=False)) if text else ""
 
 
 def drawtext(textfile: Path, font: str, size: int, color: str, y: str, box: bool,
@@ -668,7 +668,8 @@ def build_scene(project: Path, data: dict, s: dict, font: str) -> Path:
         filters.append(drawtext(tf, font, size, v.get("text_color", "white"), y, vt not in ("text", "color"),
                                 f"gte(t,{LEAD_IN * 0.5})"))
     if data.get("subtitles", True) and s.get("narration"):
-        chunks = subtitle_chunks(s["narration"])
+        # "subtitle" lets the screen show "ffmpeg" while the voice reads "эф эф эм пэг"
+        chunks = subtitle_chunks(s.get("subtitle") or s["narration"])
         total_w = sum(len(c.split()) for c in chunks) or 1
         vd = float(s.get("voice_duration") or (d - LEAD_IN - TAIL))
         t0 = LEAD_IN
