@@ -38,3 +38,4 @@ google-services.json
 video-projects/*/build/
 video-projects/*/audio/
 .claude/skills/video-forge/examples/*/audio/
+__pycache__/
