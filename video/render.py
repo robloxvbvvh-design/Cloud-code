@@ -302,6 +302,7 @@ SKIN_D = hx('#d99a72')
 HAIR = hx('#4a2c1a')
 PJ = hx('#3f6fd6')
 PJD = hx('#2c4fa8')
+ROCKETS = True
 
 
 def dima_head(c, x, y, r, eyes=1.0, look=(0, 0), mouth='smile', mo=0.5, brows='n',
@@ -538,7 +539,7 @@ def dima(c, x, y, s=1.0, face=1, eyes=1.0, look=(0, 0), mouth='smile', mo=0.5, b
     col(c, PJ)
     c.fill()
     # ракеты на пижаме
-    for (rx_, ry_) in ((-22, -35), (20, 5), (-15, 40), (28, -45)):
+    for (rx_, ry_) in (((-22, -35), (20, 5), (-15, 40), (28, -45)) if ROCKETS else ()):
         c.save()
         c.translate(rx_, ry_)
         c.rotate(-0.6)
