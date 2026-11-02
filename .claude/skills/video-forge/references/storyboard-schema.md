@@ -7,6 +7,10 @@
   "fps": 30,
   "palette": ["#0b1d3a", "#1e6fd9"], // цвета градиента по умолчанию
   "font": "/path/to/font.ttf",   // необязательно; по умолчанию DejaVu Sans Bold (есть кириллица)
+  "style": "pixel",              // pixel | neon | comic | minimal | не задано = градиент
+  "seed": "1",                   // другой seed = другие фоны/раскладки при том же сценарии
+  "mascot_color": "#D97757",     // pixel: цвет персонажа
+  "style_palette": ["#ff4081", "#00e5ff"], // свои цвета стиля (необязательно)
   "subtitles": true,             // субтитры из narration внизу кадра
   "music": "pad",                // pad | dark | bright | "music/track.mp3" | null
   "music_volume": 0.15,
@@ -44,7 +48,9 @@
         "colors": ["#3a1c71", "#ffaf7b"], // градиент этой сцены
         "fade": 0.3,             // затемнение на входе/выходе, 0 = без
         "vignette": true,
-        "description": "Что в кадре — для раскадровки"
+        "description": "Что в кадре — для раскадровки",
+        "style": "comic",        // стиль только этой сцены
+        "style_options": { "bg": "space", "action": "dance", "layout": "bubble" } // закрепить вариант
       },
       "sfx": [
         { "name": "whoosh", "at": 0.0, "volume": 0.6 },

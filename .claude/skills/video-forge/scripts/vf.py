@@ -631,6 +631,20 @@ def build_scene(project: Path, data: dict, s: dict, font: str) -> Path:
 
     src = v.get("source")
     srcp = (project / src) if src and not Path(src).is_absolute() else Path(src or "")
+    style = v.get("style", data.get("style", ""))
+    styled = False
+    if style and vt in ("text", "color"):
+        try:
+            import styles  # Pillow + numpy
+            if style not in styles.STYLES:
+                die(f"unknown style '{style}'. available: {', '.join(styles.STYLES)}")
+            idx = next(i for i, x in enumerate(data["scenes"]) if x is s)
+            vf_ = project / s["voice_file"] if s.get("voice_file") else None
+            srcp = styles.render_scene(style, s, data, idx, len(data["scenes"]), d, fps, w, h, vf_,
+                                       work / "styled" / f"scene_{s['id']:02d}.mp4")
+            vt, styled = "video", True
+        except ImportError as e:
+            print(f"  ! style '{style}' needs Pillow and numpy ({e}) -> plain gradient")
     if vt == "image" and srcp.exists():
         motion = v.get("motion", "zoom_in")
         z = {"zoom_in": "min(1+0.0009*on,1.25)", "zoom_out": "max(1.25-0.0009*on,1)", "none": "1"}.get(motion, "min(1+0.0009*on,1.25)")
@@ -658,7 +672,7 @@ def build_scene(project: Path, data: dict, s: dict, font: str) -> Path:
     filters = [base]
     tdir = work / "text"
     tdir.mkdir(exist_ok=True)
-    caption = v.get("caption")
+    caption = None if styled else v.get("caption")  # styles draw their own captions
     if caption:
         size = int(v.get("font_size") or (h * (0.055 if vt in ("text", "color") else 0.042)))
         tf = tdir / f"cap_{s['id']:02d}.txt"
