@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Последний час</title>
+<style>
+  :root { --bg:#000; --fg:#ffe81f; --ui:#ddd; }
+  html,body { margin:0; height:100%; background:var(--bg); overflow:hidden; font-family: "Trebuchet MS", Arial, sans-serif; }
+  canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  #crawlWrap { position:absolute; inset:0; perspective:320px; perspective-origin:50% 0%; overflow:hidden; pointer-events:none; display:none; }
+  #crawl { position:absolute; left:50%; top:100%; width:min(640px,86vw); transform-origin:50% 0%; transform:translateX(-50%) rotateX(24deg);
+           color:var(--fg); font-size:clamp(20px,3.6vw,34px); line-height:1.35; text-align:justify; font-weight:bold; }
+  #crawl h2 { text-align:center; margin:0 0 .2em; font-size:1.1em; }
+  #crawl h1 { text-align:center; margin:0 0 1em; font-size:1.6em; letter-spacing:.06em; }
+  #crawl p { margin:0 0 1em; }
+  #ui { position:absolute; left:0; right:0; bottom:0; display:flex; gap:10px; align-items:center; padding:10px 16px; background:linear-gradient(transparent,rgba(0,0,0,.7)); opacity:.25; transition:opacity .3s; }
+  #ui:hover, #ui:focus-within { opacity:1; }
+  #ui button { background:#222; color:var(--ui); border:1px solid #555; border-radius:6px; font-size:16px; padding:6px 12px; cursor:pointer; }
+  #ui input { flex:1; accent-color:#ffe81f; }
+  #time { color:var(--ui); font-size:13px; min-width:44px; text-align:right; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="crawlWrap"><div id="crawl">
+  <h2>ЭПИЗОД ∞</h2>
+  <h1>ПОСЛЕДНИЙ ЧАС</h1>
+  <p>Галактика на краю гибели. Тёмный владыка ДАРТ ВЕЙДЕР готовит последний удар по свободным мирам.</p>
+  <p>Двое юных пилотов — ПЕТЯ и ВАСЯ — угнали прототип истребителя и мчатся к его флагману, чтобы остановить зло.</p>
+  <p>Они ещё не знают, что старый мастер ЙОДА уже ждёт их на пустынной планете у края галактики.</p>
+  <p>У героев остался всего один час…</p>
+</div></div>
+<div id="ui">
+  <button id="play" aria-label="Пауза">⏸</button>
+  <button id="restart" aria-label="Сначала">⟲</button>
+  <input id="seek" type="range" min="0" max="82" step="0.1" value="0" aria-label="Перемотка">
+  <span id="time">0:00</span>
+</div>
+<script>
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const VW = 1600, VH = 900, TOTAL = 82;
+let scale = 1, ox = 0, oy = 0;
+function resize(){
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = innerWidth*dpr; cv.height = innerHeight*dpr;
+  scale = Math.min(cv.width/VW, cv.height/VH);
+  ox = (cv.width - VW*scale)/2; oy = (cv.height - VH*scale)/2;
+}
+addEventListener('resize', resize); resize();
+
+// ---------- helpers ----------
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,k)=>a+(b-a)*k;
+const ease=k=>{k=clamp(k);return k*k*(3-2*k);};
+const seg=(u,a,b)=>ease((u-a)/(b-a));
+function rnd(n){ const x=Math.sin(n*127.1+311.7)*43758.5453; return x-Math.floor(x); }
+
+const stars = Array.from({length:380},(_,i)=>({x:rnd(i)*VW, y:rnd(i+999)*VH, r:rnd(i+77)*1.6+0.3, tw:rnd(i+5)*6}));
+function drawStars(t, alpha=1, warp=0){
+  ctx.save(); ctx.globalAlpha=alpha;
+  for(const s of stars){
+    const a = 0.6+0.4*Math.sin(t*2+s.tw);
+    ctx.fillStyle=`rgba(255,255,255,${a})`;
+    if(warp>0){
+      const dx=s.x-VW/2, dy=s.y-VH/2;
+      ctx.strokeStyle=`rgba(200,220,255,${a})`; ctx.lineWidth=s.r;
+      ctx.beginPath(); ctx.moveTo(s.x,s.y); ctx.lineTo(s.x+dx*warp, s.y+dy*warp); ctx.stroke();
+    } else { ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,7); ctx.fill(); }
+  }
+  ctx.restore();
+}
+function blade(x1,y1,x2,y2,color,w=9){
+  ctx.save(); ctx.lineCap='round';
+  ctx.shadowColor=color; ctx.shadowBlur=25;
+  ctx.strokeStyle=color; ctx.lineWidth=w; ctx.globalAlpha=.75;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.globalAlpha=1; ctx.shadowBlur=8; ctx.strokeStyle='#fff'; ctx.lineWidth=w*.38;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.restore();
+}
+function explosion(x,y,k,size=60,seed=1){
+  if(k<0||k>1) return;
+  ctx.save();
+  const r=size*(0.3+k);
+  const g=ctx.createRadialGradient(x,y,0,x,y,r);
+  g.addColorStop(0,`rgba(255,255,220,${1-k})`); g.addColorStop(.4,`rgba(255,160,40,${(1-k)*.9})`); g.addColorStop(1,'rgba(255,60,0,0)');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill();
+  for(let i=0;i<16;i++){
+    const a=rnd(seed*31+i)*6.28, d=size*2*k*(0.5+rnd(seed+i*7));
+    ctx.fillStyle=`rgba(255,${150+rnd(i)*100|0},60,${1-k})`;
+    ctx.fillRect(x+Math.cos(a)*d, y+Math.sin(a)*d, 4,4);
+  }
+  ctx.restore();
+}
+function sparks(x,y,t,n=10){
+  ctx.save(); ctx.strokeStyle='#fff6b0'; ctx.lineWidth=2; ctx.shadowColor='#ffd'; ctx.shadowBlur=10;
+  const f=Math.floor(t*24);
+  for(let i=0;i<n;i++){
+    const a=rnd(f*13+i)*6.28, d=10+rnd(f*7+i)*40;
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+Math.cos(a)*d, y+Math.sin(a)*d); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ---------- characters ----------
+// o: x, y (ground), s (scale), face (1 right / -1 left), kind, a (saber angle, 0 = up, + = forward),
+//    on (blade length 0..1), kneel (0..1), rot (fall rotation), walk (phase), arm (raised free arm 0..1)
+const CHAR = {
+  petya: {shirt:'#e07b2a', pants:'#3b3b5c', skin:'#f1c29a', hair:'#6b3b1c', saber:'#3aa0ff', label:'Петя'},
+  vasya: {shirt:'#3a8f5a', pants:'#4a3b2a', skin:'#f3cfa9', hair:'#e8c75a', saber:'#b45cff', label:'Вася'},
+  vader: {shirt:'#151515', pants:'#0d0d0d', skin:'#111', hair:null, saber:'#ff2a2a', label:'Дарт Вейдер'},
+  yoda:  {shirt:'#8a6a45', pants:'#8a6a45', skin:'#86b05a', hair:null, saber:'#5cff5c', label:'Йода'},
+};
+function person(o){
+  const c=CHAR[o.kind];
+  ctx.save();
+  ctx.translate(o.x,o.y); ctx.rotate(o.rot||0); ctx.scale((o.s||1)*(o.face||1), o.s||1);
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  const kneel=o.kneel||0, w=o.walk||0;
+  if(o.kind==='yoda'){
+    // robe
+    ctx.fillStyle=c.shirt;
+    ctx.beginPath(); ctx.moveTo(-26,0); ctx.lineTo(26,0); ctx.lineTo(14,-58); ctx.lineTo(-14,-58); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#6b5034'; ctx.fillRect(-14,-36,28,5);
+    // head
+    ctx.fillStyle=c.skin;
+    ctx.beginPath(); ctx.moveTo(-14,-76); ctx.lineTo(-44,-88); ctx.lineTo(-12,-66); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(14,-76); ctx.lineTo(44,-88); ctx.lineTo(12,-66); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0,-72,17,15,0,0,7); ctx.fill();
+    ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(6,-75,3,0,7); ctx.arc(-4,-75,3,0,7); ctx.fill();
+    ctx.strokeStyle='#5d7f3c'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(2,-66,5,0.2,2.9); ctx.stroke();
+    // arm + saber
+    const hx=18, hy=-40;
+    ctx.strokeStyle=c.shirt; ctx.lineWidth=8; ctx.beginPath(); ctx.moveTo(4,-50); ctx.lineTo(hx,hy); ctx.stroke();
+    if(o.on>0){
+      const a=o.a||0, L=60*o.on;
+      ctx.strokeStyle='#999'; ctx.lineWidth=5; ctx.beginPath(); ctx.moveTo(hx,hy); ctx.lineTo(hx+Math.sin(a)*10,hy-Math.cos(a)*10); ctx.stroke();
+      blade(hx+Math.sin(a)*10,hy-Math.cos(a)*10,hx+Math.sin(a)*(10+L),hy-Math.cos(a)*(10+L),c.saber,7);
+    }
+    ctx.restore(); return;
+  }
+  const hipY = -80 + kneel*32;
+  // cape (Vader)
+  if(o.kind==='vader'){
+    ctx.fillStyle='#0a0a0a';
+    ctx.beginPath(); ctx.moveTo(-12,-150+kneel*32); ctx.quadraticCurveTo(-48+Math.sin(w)*4,-60,-40-kneel*10,0); ctx.lineTo(10,0); ctx.lineTo(8,-150+kneel*32); ctx.fill();
+  }
+  // legs
+  ctx.strokeStyle=c.pants; ctx.lineWidth=14;
+  const step=Math.sin(w)*14;
+  if(kneel>0.01){
+    ctx.beginPath(); ctx.moveTo(0,hipY); ctx.lineTo(24*kneel+step*(1-kneel),-36*kneel); ctx.lineTo(20,0); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,hipY); ctx.lineTo(-10,-8*kneel-30*(1-kneel)); ctx.lineTo(-38*kneel-12,0); ctx.stroke();
+  } else {
+    ctx.beginPath(); ctx.moveTo(0,hipY); ctx.lineTo(step,0); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,hipY); ctx.lineTo(-step,0); ctx.stroke();
+  }
+  // body
+  const top = -150 + kneel*32;
+  ctx.fillStyle=c.shirt;
+  ctx.beginPath(); ctx.roundRect(-17,top,34,hipY-top+6,10); ctx.fill();
+  if(o.kind==='vader'){
+    ctx.fillStyle='#333'; ctx.fillRect(-10,top+18,20,14);
+    ['#f33','#3f3','#39f'].forEach((col,i)=>{ctx.fillStyle=col; ctx.fillRect(-7+i*6,top+22,4,4);});
+    ctx.fillStyle='#777'; ctx.fillRect(-17,hipY-14,34,6);
+  }
+  // free arm
+  const fa=o.arm||0;
+  ctx.strokeStyle=o.kind==='vader'?'#1a1a1a':c.shirt; ctx.lineWidth=11;
+  ctx.beginPath(); ctx.moveTo(-4,top+12); ctx.lineTo(-6+fa*40,top+60-fa*40); ctx.stroke();
+  // head
+  const hy=top-18;
+  if(o.kind==='vader'){
+    ctx.fillStyle='#0b0b0b';
+    ctx.beginPath(); ctx.moveTo(-20,hy+18); ctx.quadraticCurveTo(-22,hy-22,0,hy-24); ctx.quadraticCurveTo(22,hy-22,22,hy+18); ctx.lineTo(10,hy+12); ctx.lineTo(0,hy+20); ctx.lineTo(-10,hy+12); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#2b2b2b'; ctx.beginPath(); ctx.moveTo(-2,hy-2); ctx.lineTo(18,hy-6); ctx.lineTo(16,hy+2); ctx.lineTo(2,hy+4); ctx.fill();
+    ctx.fillStyle='#555'; ctx.beginPath(); ctx.moveTo(4,hy+6); ctx.lineTo(14,hy+6); ctx.lineTo(9,hy+16); ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,hy-6,16,3.6,4.6); ctx.stroke();
+  } else {
+    ctx.fillStyle=c.skin; ctx.beginPath(); ctx.arc(0,hy,16,0,7); ctx.fill();
+    ctx.fillStyle=c.hair; ctx.beginPath(); ctx.arc(0,hy-4,16.5,3.3,6.2); ctx.fill();
+    if(o.kind==='vasya'){ for(let i=0;i<4;i++){ ctx.beginPath(); ctx.moveTo(-12+i*7,hy-14); ctx.lineTo(-9+i*7,hy-26); ctx.lineTo(-5+i*7,hy-14); ctx.fill(); } }
+    ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(8,hy-2,2.2,0,7); ctx.fill();
+    ctx.strokeStyle='#8a4a3a'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(6,hy+7); ctx.lineTo(12,hy+6); ctx.stroke();
+  }
+  // saber arm
+  const a=o.a||0, sx=4, sy=top+14;
+  const hx=sx+Math.sin(a+1.3)*34, hy2=sy-Math.cos(a+1.3)*34+18;
+  ctx.strokeStyle=o.kind==='vader'?'#1a1a1a':c.shirt; ctx.lineWidth=11;
+  ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(hx,hy2); ctx.stroke();
+  if(o.hilt!==false){
+    const ex=hx+Math.sin(a)*14, ey=hy2-Math.cos(a)*14;
+    ctx.strokeStyle='#aaa'; ctx.lineWidth=6; ctx.beginPath(); ctx.moveTo(hx-Math.sin(a)*4,hy2+Math.cos(a)*4); ctx.lineTo(ex,ey); ctx.stroke();
+    if(o.on>0){ const L=105*o.on; blade(ex,ey,ex+Math.sin(a)*L,ey-Math.cos(a)*L,c.saber); }
+  }
+  ctx.restore();
+}
+function label(text,x,y,alpha){
+  if(alpha<=0) return;
+  ctx.save(); ctx.globalAlpha=alpha; ctx.font='bold 22px Trebuchet MS, Arial'; ctx.textAlign='center';
+  const w=ctx.measureText(text).width+18;
+  ctx.fillStyle='rgba(0,0,0,.55)'; ctx.beginPath(); ctx.roundRect(x-w/2,y-22,w,30,8); ctx.fill();
+  ctx.fillStyle='#ffe81f'; ctx.fillText(text,x,y); ctx.restore();
+}
+
+// ---------- subtitles ----------
+const SUBS = [
+  [30,32.6,'Петя','Вася, прикрой меня! Иду на флагман!'],
+  [32.8,35.2,'Вася','Держу хвост! Сбил одного!'],
+  [36,39.5,'Петя','Сигнал Вейдера идёт с планеты. Вниз!'],
+  [43,46,'Дарт Вейдер','Петя… Вася… Ваш последний час настал.'],
+  [46.2,48,'Петя','Не дождёшься, Вейдер!'],
+  [48.1,49.8,'Вася','Нас двое, а ты один!'],
+  [54,56,'Дарт Вейдер','Почувствуйте мощь тёмной стороны!'],
+  [57.5,59,'Йода','Хм! Одни вы не, юные падаваны.'],
+  [59.2,62,'Йода','Вместе сильны вы. Последний час — его, не ваш.'],
+  [69,71,'Дарт Вейдер','Нет… Этого не может быть…'],
+  [71.2,74,'Йода','Добро в нём ещё осталось. Чувствую я это.'],
+];
+function drawSubs(t){
+  for(const [a,b,who,txt] of SUBS){
+    if(t<a||t>b) continue;
+    const al=clamp((t-a)/.25)*clamp((b-t)/.25);
+    ctx.save(); ctx.globalAlpha=al; ctx.textAlign='center';
+    ctx.font='bold 34px Trebuchet MS, Arial';
+    const line=`${who}: «${txt}»`;
+    const w=Math.min(VW-80, ctx.measureText(line).width+40);
+    ctx.fillStyle='rgba(0,0,0,.65)'; ctx.beginPath(); ctx.roundRect(VW/2-w/2,VH-112,w,56,12); ctx.fill();
+    ctx.fillStyle='#ffe81f'; ctx.fillText(who+': ',VW/2-ctx.measureText(`«${txt}»`).width/2, VH-72);
+    ctx.fillStyle='#fff'; ctx.fillText(`«${txt}»`, VW/2+ctx.measureText(who+': ').width/2, VH-72);
+    ctx.restore();
+  }
+}
+
+// ---------- scenes ----------
+function sceneIntro(t){ // 0-4
+  drawStars(t,.4);
+  const al=clamp(t/0.8)*clamp((4-t)/0.8);
+  ctx.save(); ctx.globalAlpha=al; ctx.fillStyle='#4bd5ee'; ctx.font='42px Trebuchet MS, Arial'; ctx.textAlign='center';
+  ctx.fillText('Давным-давно, в одной далёкой-далёкой галактике…',VW/2,VH/2); ctx.restore();
+}
+function sceneTitle(t){ // 4-10
+  const u=t-4; drawStars(t);
+  const k=u/6, s=lerp(2.6,0.15,1-Math.pow(1-k,1.6)), al=clamp((6-u)/1.2);
+  ctx.save(); ctx.translate(VW/2,VH/2); ctx.scale(s,s); ctx.globalAlpha=al; ctx.textAlign='center';
+  ctx.lineWidth=5; ctx.strokeStyle='#ffe81f'; ctx.fillStyle='#000';
+  ctx.font='900 150px Arial Black, Arial'; ctx.strokeText('ЗВЁЗДНЫЕ',0,-20); ctx.fillText('ЗВЁЗДНЫЕ',0,-20);
+  ctx.strokeText('ВОЙНЫ',0,130); ctx.fillText('ВОЙНЫ',0,130);
+  ctx.fillStyle='#ffe81f'; ctx.font='bold 54px Arial'; ctx.fillText('ПОСЛЕДНИЙ ЧАС',0,220);
+  ctx.restore();
+}
+const crawlWrap=document.getElementById('crawlWrap'), crawl=document.getElementById('crawl');
+function sceneCrawl(t){ // 10-28
+  drawStars(t);
+  const u=t-10;
+  const fade=clamp((18-u)/1.5);
+  crawlWrap.style.display='block'; crawlWrap.style.opacity=fade;
+  const H=crawl.offsetHeight + innerHeight*0.9;
+  crawl.style.transform=`translateX(-50%) rotateX(24deg) translateY(${-u/18*H}px)`;
+}
+function fighter(x,y,s,col,ang=0,name){
+  ctx.save(); ctx.translate(x,y); ctx.rotate(ang); ctx.scale(s,s);
+  ctx.fillStyle='#ccc'; ctx.strokeStyle='#888'; ctx.lineWidth=2;
+  // X-wings
+  [[-1,-1],[1,1],[-1,1],[1,-1]].forEach(([dx,dy])=>{ ctx.beginPath(); ctx.moveTo(-10,dy*4); ctx.lineTo(-26,dy*34); ctx.lineTo(-14,dy*34); ctx.lineTo(4,dy*4); ctx.fill(); });
+  ctx.fillStyle=col; [[-26,-34],[-26,30]].forEach(([a,b])=>ctx.fillRect(a,b,14,4));
+  ctx.fillStyle='#e6e6e6'; ctx.beginPath(); ctx.moveTo(-34,-7); ctx.lineTo(40,-2); ctx.lineTo(40,2); ctx.lineTo(-34,7); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#4bd5ee'; ctx.fillRect(4,-4,12,8);
+  ctx.fillStyle='rgba(120,180,255,.9)'; ctx.shadowColor='#7af'; ctx.shadowBlur=18; ctx.fillRect(-42,-5,8,10);
+  ctx.restore();
+  if(name) label(name,x,y-48*s,1);
+}
+function tie(x,y,s){
+  ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
+  ctx.fillStyle='#555'; ctx.fillRect(-26,-30,6,60); ctx.fillRect(20,-30,6,60);
+  ctx.strokeStyle='#333'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(-20,0); ctx.lineTo(20,0); ctx.stroke();
+  ctx.fillStyle='#888'; ctx.beginPath(); ctx.arc(0,0,11,0,7); ctx.fill();
+  ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(0,0,5,0,7); ctx.fill();
+  ctx.restore();
+}
+function sceneSpace(t){ // 28-40
+  const u=t-28;
+  drawStars(t);
+  // planet
+  const pg=ctx.createRadialGradient(1300,1000,50,1350,1100,520);
+  pg.addColorStop(0,'#f0b56a'); pg.addColorStop(.7,'#b86a2a'); pg.addColorStop(1,'#5a2c10');
+  ctx.fillStyle=pg; ctx.beginPath(); ctx.arc(1350,1150+ -u*8,520+u*10,0,7); ctx.fill();
+  // flagship
+  const dx=lerp(1900,1050,seg(u,0,7));
+  ctx.save(); ctx.translate(dx,260);
+  ctx.fillStyle='#8a8f96'; ctx.beginPath(); ctx.moveTo(-520,40); ctx.lineTo(260,-70); ctx.lineTo(260,110); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#6d7279'; ctx.beginPath(); ctx.moveTo(-520,40); ctx.lineTo(260,110); ctx.lineTo(260,130); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#9aa0a8'; ctx.fillRect(80,-120,90,55); ctx.fillRect(110,-150,30,32);
+  for(let i=0;i<14;i++){ ctx.fillStyle='rgba(255,240,180,.8)'; ctx.fillRect(-300+i*38,48+i*1.5,6,3); }
+  ctx.restore();
+  // enemy fighters
+  const ties=[{t0:1.2,y:300,die:4.2},{t0:2,y:520,die:5.6},{t0:3.3,y:420,die:7.4},{t0:4.6,y:620,die:9}];
+  ties.forEach((e,i)=>{
+    const k=u-e.t0; if(k<0) return;
+    const x=1500-k*230, y=e.y+Math.sin(k*2+i)*40;
+    if(u<e.die) tie(x,y,1); else explosion(x+ (u-e.die)*0, y, (u-e.die)/1.1, 70, i+3);
+    if(u<e.die && Math.floor(k*2.5)%2===0){ blade(x-30-(k*2.5%1)*200, y, x-60-(k*2.5%1)*200, y, '#3f3',4); }
+  });
+  // heroes
+  const dive=seg(u,8.5,12);
+  const p={x:lerp(-100,560,seg(u,0,3))+Math.sin(u*1.3)*30, y:420+Math.sin(u*1.7)*50};
+  const v={x:lerp(-260,380,seg(u,0.5,3.5))+Math.sin(u*1.1)*25, y:560+Math.sin(u*1.4+1)*40};
+  const P={x:lerp(p.x,1300,dive), y:lerp(p.y,820,dive)}, V={x:lerp(v.x,1250,dive), y:lerp(v.y,860,dive)};
+  // lasers
+  for(const [h,off] of [[P,0],[V,.2]]){
+    if(dive>0.2) break;
+    const ph=((u+off)*3)%1;
+    if(u>1) blade(h.x+40+ph*700,h.y,h.x+90+ph*700,h.y,'#ff3030',4);
+  }
+  fighter(V.x,V.y,1-dive*.8,'#b45cff',dive*0.6,dive<.5?'Вася':null);
+  fighter(P.x,P.y,1.1-dive*.9,'#3aa0ff',dive*0.6,dive<.5?'Петя':null);
+}
+function desert(t){
+  const g=ctx.createLinearGradient(0,0,0,VH);
+  g.addColorStop(0,'#2a1846'); g.addColorStop(.55,'#d9744a'); g.addColorStop(1,'#f2b35c');
+  ctx.fillStyle=g; ctx.fillRect(0,0,VW,VH);
+  drawStars(t,.3);
+  ctx.fillStyle='#ffe6a0'; ctx.shadowColor='#ffd27a'; ctx.shadowBlur=40;
+  ctx.beginPath(); ctx.arc(1180,330,46,0,7); ctx.fill();
+  ctx.beginPath(); ctx.arc(1300,370,30,0,7); ctx.fill(); ctx.shadowBlur=0;
+  ctx.fillStyle='#c98a46'; ctx.beginPath(); ctx.moveTo(0,640);
+  for(let x=0;x<=VW;x+=40) ctx.lineTo(x,620+Math.sin(x/170)*30); ctx.lineTo(VW,VH); ctx.lineTo(0,VH); ctx.fill();
+  ctx.fillStyle='#e0a45a'; ctx.beginPath(); ctx.moveTo(0,760);
+  for(let x=0;x<=VW;x+=40) ctx.lineTo(x,750+Math.sin(x/230+1)*14); ctx.lineTo(VW,VH); ctx.lineTo(0,VH); ctx.fill();
+}
+function sceneDuel(t){ // 40-74
+  const u=t-40, G=770, S=1.35;
+  desert(t);
+  // landed fighters in background
+  ctx.save(); ctx.globalAlpha=.9; fighter(170,690,.8,'#3aa0ff',-.08); fighter(330,705,.7,'#b45cff',.05); ctx.restore();
+
+  // --- Vader ---
+  let D={kind:'vader',x:lerp(1750,1080,seg(u,0,3)),y:G,s:S*1.08,face:-1,a:0.3,on:seg(u,4,4.6),walk:u<3?u*6:0};
+  // --- Petya, Vasya ---
+  let P={kind:'petya',x:520,y:G,s:S,face:1,a:0.2,on:seg(u,6.2,6.8)};
+  let V={kind:'vasya',x:380,y:G,s:S,face:1,a:0.2,on:seg(u,8.1,8.7)};
+  let Y=null, flying=null;
+
+  if(u>9 && u<14){ // clash
+    const k=seg(u,9,10);
+    P.x=lerp(520,900,k); V.x=lerp(380,740,k); P.walk=u<10?u*8:0;
+    const sw=Math.sin((u-10)*9);
+    P.a=0.7+0.8*sw; D.a=0.7-0.8*sw; V.a=0.4+0.2*Math.sin(u*4);
+  }
+  if(u>=14){ // force push
+    const k=seg(u,14,15.2), back=seg(u,18,19.5);
+    D.arm=seg(u,13.6,14)*(1-seg(u,16,16.5)); D.a=0.2;
+    P.x=lerp(900,560,k); P.rot=-1.35*k*(1-back); P.y=G-Math.sin(k*Math.PI)*60;
+    V.x=lerp(740,300,k); V.rot=-1.35*k*(1-back); V.y=G-Math.sin(k*Math.PI)*50;
+    P.a=V.a=0.3;
+  }
+  if(u>=20){ // Vasya runs behind Vader, Petya closes in
+    const k=seg(u,20,22.3);
+    V.x=lerp(300,1260,k); V.face=k>0.55?-1:1; V.walk=k<1?u*10:0;
+    P.x=lerp(560,900,seg(u,20,21.5)); P.walk=u<21.5?u*9:0;
+  }
+  if(u>=16){ // Yoda
+    const k=seg(u,16,18);
+    Y={kind:'yoda',x:lerp(-60,700,k),y:G-Math.sin(clamp((u-16)/2)*Math.PI)*420,s:S*1.1,face:1,a:0.3,on:seg(u,17.5,18),rot:u<18?(u-16)*6.28:0};
+  }
+  if(u>=22 && u<27){ // big fight
+    const f=u-22;
+    P.a=0.7+0.8*Math.sin(f*8); V.a=0.7+0.8*Math.sin(f*8+1.5);
+    D.face=Math.sin(f*2.2)>0?-1:1; D.a=0.7+0.8*Math.sin(f*8+3.1);
+    Y.x=900+90*Math.sin(f*3); Y.y=G-Math.abs(Math.sin(f*4))*230; Y.rot=Math.sin(f*4)*0.6; Y.a=0.5+Math.sin(f*10);
+  }
+  if(u>=27){
+    const k=seg(u,27,27.6);
+    D.a=lerp(0.7,-0.6,k); D.face=-1;
+    P.a=lerp(0.7,1.3,k); V.a=lerp(0.7,1.3,k);
+    Y.x=lerp(Y.x,760,seg(u,27,28)); Y.y=G; Y.rot=0; Y.a=0.25;
+    D.hilt=u<27.6;
+    D.kneel=seg(u,28,29.2);
+    if(u>=27.6){ // saber flies away
+      const f=u-27.6;
+      flying={x:1080+f*480, y:520-f*700+f*f*420, ang:f*14};
+    }
+  }
+  if(u>=29.5){ P.a=lerp(1.3,0.2,seg(u,29.5,30.5)); V.a=P.a; }
+
+  // draw order
+  if(u>=20 && u<21.5) person(V); // behind Vader while passing
+  person(D);
+  if(!(u>=20 && u<21.5)) person(V);
+  person(P);
+  if(Y) person(Y);
+  if(flying){
+    ctx.save(); ctx.translate(flying.x,flying.y); ctx.rotate(flying.ang);
+    ctx.strokeStyle='#aaa'; ctx.lineWidth=8; ctx.beginPath(); ctx.moveTo(-10,0); ctx.lineTo(10,0); ctx.stroke(); ctx.restore();
+  }
+  // effects
+  if(u>10 && u<14 && Math.abs(Math.sin((u-10)*9))>0.85) sparks((P.x+D.x)/2, G-230, u, 14);
+  if(u>=13.8 && u<15.5){ // force wave
+    const k=(u-13.8)/1.7;
+    ctx.save(); ctx.strokeStyle=`rgba(160,80,255,${1-k})`; ctx.lineWidth=8; ctx.shadowColor='#a050ff'; ctx.shadowBlur=30;
+    ctx.beginPath(); ctx.arc(D.x-40,G-180,40+k*600,2.2,4.1); ctx.stroke(); ctx.restore();
+  }
+  if(u>=22 && u<27 && Math.floor((u-22)*6)%2===0) sparks(D.x+(Math.sin(u*2.2)>0?-70:70), G-250+Math.sin(u*7)*40, u, 12);
+  if(u>=27.3 && u<27.9) sparks(D.x-60, G-260, u, 22);
+  // labels
+  const la=seg(u,1,1.5)*(1-seg(u,9,9.5));
+  label('Петя',P.x,G-260,la); label('Вася',V.x,G-260,la); label('Дарт Вейдер',D.x,G-290,seg(u,2,2.5)*(1-seg(u,9,9.5)));
+  if(Y) label('Мастер Йода',Y.x,Y.y-150,seg(u,18,18.5)*(1-seg(u,21,21.5)));
+  // fade in from black
+  ctx.fillStyle=`rgba(0,0,0,${1-clamp(u/1)})`; ctx.fillRect(0,0,VW,VH);
+}
+function sceneEnd(t){ // 74-82
+  const u=t-74;
+  drawStars(t);
+  ctx.save(); ctx.textAlign='center';
+  ctx.globalAlpha=clamp(u/1)*clamp((8-u)/0.8);
+  ctx.fillStyle='#ffe81f'; ctx.font='900 110px Arial Black, Arial'; ctx.fillText('КОНЕЦ',VW/2,330);
+  ctx.globalAlpha*=clamp((u-1.2)/1);
+  ctx.fillStyle='#fff'; ctx.font='36px Trebuchet MS, Arial'; ctx.fillText('Да пребудет с вами Сила, Петя и Вася!',VW/2,420);
+  ctx.fillStyle='#bbb'; ctx.font='28px Trebuchet MS, Arial';
+  ['В ролях:','Петя — пилот с синим мечом','Вася — пилот с фиолетовым мечом','Дарт Вейдер — тёмный владыка','Мастер Йода — мудрый джедай']
+    .forEach((s,i)=>{ ctx.globalAlpha=clamp((u-2-i*.4)/0.6)*clamp((8-u)/0.8); ctx.fillText(s,VW/2,520+i*44); });
+  ctx.restore();
+}
+
+// ---------- loop ----------
+let t=0, playing=true, last=performance.now();
+const playBtn=document.getElementById('play'), seek=document.getElementById('seek'), timeEl=document.getElementById('time');
+playBtn.onclick=()=>{ playing=!playing; playBtn.textContent=playing?'⏸':'▶'; playBtn.setAttribute('aria-label',playing?'Пауза':'Играть'); };
+document.getElementById('restart').onclick=()=>{ t=0; };
+seek.oninput=()=>{ t=+seek.value; };
+addEventListener('keydown',e=>{ if(e.code==='Space'){ e.preventDefault(); playBtn.click(); } });
+
+function frame(now){
+  const dt=Math.min(0.1,(now-last)/1000); last=now;
+  if(playing){ t+=dt; if(t>=TOTAL) t=0; }
+  seek.value=t; timeEl.textContent=`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
+  ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle='#000'; ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.setTransform(scale,0,0,scale,ox,oy);
+  ctx.save(); ctx.beginPath(); ctx.rect(0,0,VW,VH); ctx.clip();
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,VW,VH);
+  crawlWrap.style.display='none';
+  if(t<4) sceneIntro(t);
+  else if(t<10) sceneTitle(t);
+  else if(t<28) sceneCrawl(t);
+  else if(t<40) sceneSpace(t);
+  else if(t<74) sceneDuel(t);
+  else sceneEnd(t);
+  drawSubs(t);
+  ctx.restore();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
