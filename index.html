@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Flying Roadster</title>
+<style>
+  /* Страница без отступов, чёрный фон, холст на весь экран */
+  html, body { margin: 0; padding: 0; height: 100%; background: #000; overflow: hidden; }
+  canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; touch-action: none; }
+  #hint {
+    position: fixed; left: 16px; bottom: 14px; color: rgba(255,255,255,.75);
+    font: 14px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif;
+    text-shadow: 0 1px 4px rgba(0,0,0,.6); pointer-events: none; user-select: none;
+  }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<div id="hint">Пробел — ускорение</div>
+<script>
+(() => {
+'use strict';
+
+/* ========================================================================
+ * 1. Настройка canvas + resize + devicePixelRatio
+ * ===================================================================== */
+const canvas = document.getElementById('scene');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0, S = 1;            // размеры в CSS-пикселях и масштаб машины
+
+function resize() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);   // рисуем в CSS-пикселях, чёткость даёт dpr
+  S = clamp(Math.min(W / 700, H / 520), 0.45, 1.4);
+}
+window.addEventListener('resize', resize);
+
+/* ========================================================================
+ * 2. Утилиты
+ * ===================================================================== */
+const TAU = Math.PI * 2;
+const lerp = (a, b, t) => a + (b - a) * t;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rand = (a, b) => a + Math.random() * (b - a);
+const easeInOutCubic = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+// Сглаживание, не зависящее от частоты кадров
+const damp = (a, b, k, dt) => lerp(a, b, 1 - Math.exp(-k * dt));
+
+/* ========================================================================
+ * 3. Классы сцены
+ * ===================================================================== */
+
+/* --- Звезда: координаты нормированы (0..1), поэтому переживают resize --- */
+class Star {
+  constructor() {
+    this.x = Math.random(); this.y = Math.random() * 0.7;
+    this.r = rand(0.4, 1.5); this.phase = rand(0, TAU); this.speed = rand(1, 4);
+  }
+  draw(t, scroll) {
+    const a = 0.45 + 0.55 * Math.sin(t * this.speed + this.phase);   // мерцание
+    const x = ((this.x * W - scroll * 0.02) % W + W) % W;
+    ctx.globalAlpha = clamp(a, 0.05, 1) * (1 - this.y * 0.9);        // у горизонта тусклее
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(x, this.y * H, this.r, 0, TAU); ctx.fill();
+  }
+}
+
+/* --- Облако: несколько полупрозрачных кругов --- */
+class Cloud {
+  constructor() {
+    this.x = Math.random(); this.y = rand(0.1, 0.55); this.scale = rand(0.7, 1.6);
+    this.puffs = [];
+    const n = 5 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < n; i++) {
+      this.puffs.push({ dx: (i - n / 2) * 28 + rand(-8, 8), dy: rand(-12, 8), r: rand(22, 40) });
+    }
+  }
+  draw(scroll) {
+    const span = W + 500;
+    const x = (((this.x * span - scroll * 0.4) % span) + span) % span - 250;
+    ctx.save();
+    ctx.translate(x, this.y * H); ctx.scale(this.scale, this.scale);
+    for (const p of this.puffs) {
+      ctx.fillStyle = 'rgba(255,170,190,0.16)';                 // тело, подсвеченное закатом
+      ctx.beginPath(); ctx.arc(p.dx, p.dy, p.r, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(255,220,200,0.10)';                 // светлый верх
+      ctx.beginPath(); ctx.arc(p.dx, p.dy - p.r * 0.3, p.r * 0.7, 0, TAU); ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+/* --- Здание: окна загораются и гаснут случайно --- */
+class Building {
+  constructor(x) {
+    this.x = x;
+    this.w = rand(50, 110);
+    this.hFrac = rand(0.10, 0.36);
+    this.cols = Math.max(1, Math.floor((this.w - 12) / 14));
+    this.lit = new Uint8Array(this.cols * 30);                   // 0 выкл, 1 тёплый, 2 холодный
+    for (let i = 0; i < this.lit.length; i++) {
+      const r = Math.random();
+      this.lit[i] = r < 0.35 ? 1 : (r < 0.42 ? 2 : 0);
+    }
+    this.antenna = Math.random() < 0.3;
+  }
+  draw(x) {
+    const bh = this.hFrac * H, y = H - bh;
+    const g = ctx.createLinearGradient(0, y, 0, H);
+    g.addColorStop(0, '#2a1a4a'); g.addColorStop(1, '#150c28');
+    ctx.fillStyle = g; ctx.fillRect(x, y, this.w, bh + 2);
+    ctx.fillStyle = 'rgba(255,150,80,0.35)';                     // закатная кромка справа
+    ctx.fillRect(x + this.w - 2, y, 2, bh);
+    if (this.antenna) { ctx.fillStyle = '#1a0f30'; ctx.fillRect(x + this.w / 2 - 1, y - 18, 2, 18); }
+    const rows = Math.min(30, Math.floor((bh - 14) / 16));
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < this.cols; c++) {
+        const v = this.lit[r * this.cols + c];
+        if (!v) continue;
+        ctx.fillStyle = v === 1 ? 'rgba(255,214,120,0.9)' : 'rgba(140,220,255,0.85)';
+        ctx.fillRect(x + 8 + c * 14, y + 10 + r * 16, 7, 9);
+      }
+    }
+  }
+  toggleRandom() {
+    const i = Math.floor(Math.random() * this.lit.length);
+    this.lit[i] = this.lit[i] ? 0 : (Math.random() < 0.8 ? 1 : 2);
+  }
+}
+
+/* --- Частица выхлопа --- */
+class Particle {
+  constructor(x, y, boost) {
+    this.x = x; this.y = y;
+    this.vx = -rand(220, 380) * (1 + (boost - 1) * 0.5);
+    this.vy = rand(-30, 30);
+    this.maxLife = rand(0.45, 0.9) * (1 + (boost - 1) * 0.4);    // в бусте шлейф длиннее
+    this.life = this.maxLife;
+    this.size = rand(3, 8);
+    this.hue = Math.random() < 0.55 ? rand(15, 45) : rand(185, 210);   // огонь или плазма
+  }
+  update(dt) {
+    this.x += this.vx * dt; this.y += this.vy * dt;
+    this.vy += rand(-60, 60) * dt;
+    this.life -= dt;
+  }
+  draw() {
+    const a = clamp(this.life / this.maxLife, 0, 1);
+    const r = this.size * S * (0.3 + 0.7 * a);                   // уменьшается
+    ctx.fillStyle = `hsla(${this.hue},100%,${55 + 25 * a}%,${a * 0.8})`;
+    ctx.beginPath(); ctx.arc(this.x, this.y, r, 0, TAU); ctx.fill();
+  }
+}
+
+/* ========================================================================
+ * 4. Состояние мира
+ * ===================================================================== */
+const stars  = Array.from({ length: 220 }, () => new Star());
+const clouds = Array.from({ length: 7 },   () => new Cloud());
+const TILE = 2400;                                               // ширина повторяющегося тайла города
+const buildings = [];
+for (let x = 0; x < TILE; ) { const b = new Building(x); buildings.push(b); x += b.w + rand(6, 26); }
+const particles = [];
+const birds = [];
+const meteors = [];
+const speedLines = Array.from({ length: 36 }, () => ({
+  x: Math.random(), y: Math.random(), len: rand(60, 220), v: rand(0.8, 1.4), a: rand(0.15, 0.5)
+}));
+
+let time = 0, scroll = 0;
+let boostTarget = 1, boostK = 1;
+let spawnAcc = 0, birdTimer = 3, meteorTimer = 2;
+
+// Машина
+const car = {
+  x: 0, y: 0, baseY: 0, rot: 0, prevY: 0, vy: 0,
+  maneuverOffset: 0, maneuver: null, nextManeuver: 4,
+  wave: 0, nextWave: rand(5, 8), waveT: -1
+};
+// Ввод
+const input = { active: false, y: 0 };
+
+/* ========================================================================
+ * 5. Рисование фона
+ * ===================================================================== */
+function drawSky() {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#080c26');
+  g.addColorStop(0.40, '#2c1a5e');
+  g.addColorStop(0.68, '#8a2f86');
+  g.addColorStop(0.86, '#e8586a');
+  g.addColorStop(1, '#ffa040');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // Солнце у горизонта
+  const sx = W * 0.78, sy = H * 0.80;
+  const sg = ctx.createRadialGradient(sx, sy, 0, sx, sy, H * 0.55);
+  sg.addColorStop(0, 'rgba(255,230,160,0.95)');
+  sg.addColorStop(0.08, 'rgba(255,190,100,0.7)');
+  sg.addColorStop(0.4, 'rgba(255,120,80,0.22)');
+  sg.addColorStop(1, 'rgba(255,100,80,0)');
+  ctx.fillStyle = sg; ctx.fillRect(0, 0, W, H);
+}
+
+// Бесшовный хребет: сумма синусов с целым числом периодов на тайле
+function ridge(x, amp, seed) {
+  const P = 2400, k = TAU / P;
+  return amp * (0.55 + 0.25 * Math.sin(k * 3 * x + seed)
+                     + 0.14 * Math.sin(k * 7 * x + seed * 2.1)
+                     + 0.06 * Math.sin(k * 17 * x + seed * 3.7));
+}
+function drawMountains(factor, amp, color, baseY, seed) {
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.moveTo(0, H);
+  for (let x = 0; x <= W + 6; x += 6) ctx.lineTo(x, baseY - ridge(x + scroll * factor, amp, seed));
+  ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+}
+
+function drawCity() {
+  const off = (scroll * 0.7) % TILE;
+  for (let k = 0; k * TILE - off < W; k++) {
+    const baseX = k * TILE - off;
+    for (const b of buildings) {
+      const x = baseX + b.x;
+      if (x > W || x + b.w < 0) continue;
+      b.draw(x);
+    }
+  }
+}
+
+function drawBirds() {
+  ctx.strokeStyle = 'rgba(20,10,40,0.85)'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+  for (const b of birds) {
+    const w = Math.sin(b.phase) * 5 * b.s;
+    ctx.beginPath();
+    ctx.moveTo(b.x - 9 * b.s, b.y - w); ctx.quadraticCurveTo(b.x - 4 * b.s, b.y - w * 0.3 - 3, b.x, b.y);
+    ctx.quadraticCurveTo(b.x + 4 * b.s, b.y - w * 0.3 - 3, b.x + 9 * b.s, b.y - w);
+    ctx.stroke();
+  }
+}
+
+function drawMeteors() {
+  for (const m of meteors) {
+    const a = clamp(m.life / m.maxLife, 0, 1);
+    const g = ctx.createLinearGradient(m.x, m.y, m.x - m.vx * 0.25, m.y - m.vy * 0.25);
+    g.addColorStop(0, `rgba(255,255,255,${a})`); g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.strokeStyle = g; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x - m.vx * 0.25, m.y - m.vy * 0.25); ctx.stroke();
+  }
+}
+
+function drawSpeedLines() {
+  ctx.strokeStyle = '#fff'; ctx.lineCap = 'round'; ctx.lineWidth = 1.2;
+  const k = clamp((boostK - 1) / 2, 0, 1);
+  for (const l of speedLines) {
+    const len = l.len * (1 + k * 1.5);
+    const x = l.x * (W + 400) - 200;
+    ctx.globalAlpha = l.a * (0.5 + k);
+    ctx.beginPath(); ctx.moveTo(x, l.y * H); ctx.lineTo(x + len, l.y * H); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawParticles() {
+  ctx.globalCompositeOperation = 'lighter';                       // свечение
+  for (const p of particles) p.draw();
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+/* ========================================================================
+ * 6. Рисование машины и водителя (локальные координаты, нос вправо, низ кузова y=0)
+ * ===================================================================== */
+function bodyPath() {
+  ctx.beginPath();
+  ctx.moveTo(-132, -10);
+  ctx.quadraticCurveTo(-137, -33, -112, -38);                     // задняя дуга
+  ctx.lineTo(-62, -40);                                           // крышка багажника
+  ctx.quadraticCurveTo(-56, -30, -44, -30);                       // вырез кокпита
+  ctx.lineTo(0, -30);
+  ctx.quadraticCurveTo(10, -30, 16, -38);
+  ctx.lineTo(44, -40);                                            // основание лобового стекла
+  ctx.bezierCurveTo(80, -38, 115, -30, 136, -16);                 // длинный капот
+  ctx.quadraticCurveTo(143, -8, 128, -2);                         // нос
+  ctx.lineTo(-118, -2);
+  ctx.quadraticCurveTo(-132, -4, -132, -10);
+  ctx.closePath();
+}
+
+function drawScarf(t) {
+  const f = 1 + (boostK - 1) * 0.25;                              // в бусте шарф трепещет сильнее
+  const s = (ph) => Math.sin(t * 6 * f + ph);
+  const N = { x: -32, y: -81 };
+  function tail(len, amp, ph, c1, c2) {
+    const c1x = N.x - len * 0.3, c1y = N.y + s(ph) * 7 * amp;
+    const c2x = N.x - len * 0.65, c2y = N.y - 6 + s(ph + 1) * 14 * amp;
+    const ex = N.x - len, ey = N.y - 4 + s(ph + 2) * 20 * amp;
+    const g = ctx.createLinearGradient(N.x, 0, ex, 0);
+    g.addColorStop(0, c1); g.addColorStop(1, c2);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(N.x, N.y - 4);
+    ctx.bezierCurveTo(c1x, c1y - 4, c2x, c2y - 5, ex, ey - 4);    // верхняя кромка (Безье)
+    ctx.lineTo(ex, ey + 4);
+    ctx.bezierCurveTo(c2x, c2y + 4, c1x, c1y + 4, N.x, N.y + 4);  // нижняя кромка
+    ctx.closePath(); ctx.fill();
+  }
+  tail(95, 1.0, 0, '#ffcf40', '#ff7a1a');
+  tail(70, 1.3, 1.7, '#ff9a2a', '#e8402a');
+}
+
+function drawDriver(t, wave) {
+  const bob = Math.sin(t * 3) * 1.2;
+  ctx.save(); ctx.translate(0, bob * 0.4);
+
+  const shoulder = { x: -28, y: -70 };
+  const a1 = lerp(0.6, -0.25, wave);                               // плечо: руль → взмах
+  const a2 = lerp(-0.05, -1.57 + Math.sin(t * 10) * 0.55, wave);   // предплечье машет
+  const E = { x: shoulder.x + Math.cos(a1) * 26, y: shoulder.y + Math.sin(a1) * 26 };
+  const Hd = { x: E.x + Math.cos(a2) * 24, y: E.y + Math.sin(a2) * 24 };
+
+  // Спинка сиденья
+  ctx.fillStyle = '#15121f';
+  ctx.beginPath(); ctx.roundRect(-60, -64, 14, 36, 5); ctx.fill();
+
+  // Дальняя рука (на руле, темнее)
+  ctx.strokeStyle = '#25324f'; ctx.lineWidth = 8; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(shoulder.x + 2, shoulder.y + 2);
+  ctx.lineTo(-2, -54); ctx.lineTo(15, -50); ctx.stroke();
+
+  // Торс (куртка)
+  const tg = ctx.createLinearGradient(-48, 0, -8, 0);
+  tg.addColorStop(0, '#2a3a63'); tg.addColorStop(1, '#4766a8');
+  ctx.fillStyle = tg;
+  ctx.beginPath();
+  ctx.moveTo(-46, -24); ctx.quadraticCurveTo(-50, -68, -36, -80);
+  ctx.lineTo(-14, -80); ctx.quadraticCurveTo(-6, -58, -8, -24); ctx.closePath(); ctx.fill();
+
+  // Шея и воротник
+  ctx.fillStyle = '#e9edf5'; ctx.beginPath(); ctx.roundRect(-36, -86, 20, 10, 4); ctx.fill();
+
+  // Шарф (за головой)
+  drawScarf(time);
+
+  // Шлем-скафандр
+  const hg = ctx.createRadialGradient(-30, -106, 2, -24, -98, 20);
+  hg.addColorStop(0, '#ffffff'); hg.addColorStop(1, '#b9c4d8');
+  ctx.fillStyle = hg;
+  ctx.beginPath(); ctx.arc(-24, -98, 18, 0, TAU); ctx.fill();
+  // Визор
+  const vg = ctx.createLinearGradient(-20, -108, -4, -90);
+  vg.addColorStop(0, '#6fd6ff'); vg.addColorStop(1, '#14284d');
+  ctx.fillStyle = vg;
+  ctx.beginPath(); ctx.ellipse(-12, -98, 10, 9, 0.15, 0, TAU); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';                        // блик на визоре
+  ctx.beginPath(); ctx.ellipse(-15, -102, 4, 2, -0.5, 0, TAU); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(-24, -98, 18, 0, TAU); ctx.stroke();
+
+  // Руль
+  ctx.save(); ctx.translate(17, -52); ctx.rotate(-0.4);
+  ctx.strokeStyle = '#0c0c12'; ctx.lineWidth = 3.5;
+  ctx.beginPath(); ctx.ellipse(0, 0, 4, 11, 0, 0, TAU); ctx.stroke();
+  ctx.restore();
+
+  // Ближняя рука: плечо → локоть → ладонь
+  ctx.strokeStyle = '#3b5590'; ctx.lineWidth = 9;
+  ctx.beginPath(); ctx.moveTo(shoulder.x, shoulder.y); ctx.lineTo(E.x, E.y); ctx.lineTo(Hd.x, Hd.y); ctx.stroke();
+  ctx.fillStyle = '#f2f2f2';
+  ctx.beginPath(); ctx.arc(Hd.x, Hd.y, 5.5, 0, TAU); ctx.fill();   // перчатка
+
+  ctx.restore();
+}
+
+function drawHoverPad(x, t) {
+  // Антигравитационный диск вместо колеса: тёмная ниша + светящийся эллипс
+  ctx.fillStyle = '#0a0a12';
+  ctx.beginPath(); ctx.ellipse(x, -3, 30, 11, 0, Math.PI, TAU); ctx.fill();   // ниша в кузове
+
+  const flick = 0.75 + 0.25 * Math.sin(t * 25 + x);
+  ctx.globalCompositeOperation = 'lighter';
+  // Конус тяги вниз
+  const cg = ctx.createLinearGradient(0, 0, 0, 110);
+  cg.addColorStop(0, `rgba(90,210,255,${0.55 * flick})`); cg.addColorStop(1, 'rgba(90,210,255,0)');
+  ctx.fillStyle = cg;
+  ctx.beginPath(); ctx.moveTo(x - 24, 2); ctx.lineTo(x + 24, 2); ctx.lineTo(x + 46, 110); ctx.lineTo(x - 46, 110); ctx.closePath(); ctx.fill();
+  // Диск
+  const dg = ctx.createRadialGradient(x, 1, 2, x, 1, 28);
+  dg.addColorStop(0, '#e8fbff'); dg.addColorStop(0.5, '#4fc8ff'); dg.addColorStop(1, 'rgba(40,120,255,0)');
+  ctx.fillStyle = dg;
+  ctx.beginPath(); ctx.ellipse(x, 1, 28, 7, 0, 0, TAU); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+  // «Спицы» вращающегося диска — линии, бегущие по эллипсу
+  ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1.2;
+  for (let i = 0; i < 6; i++) {
+    const px = x + Math.cos(t * 14 + i * TAU / 6) * 22;
+    ctx.beginPath(); ctx.moveTo(px, -2); ctx.lineTo(px, 4); ctx.stroke();
+  }
+}
+
+function drawCar(t) {
+  // --- Луч фар (до кузова, чтобы не перекрывать его) ---
+  ctx.globalCompositeOperation = 'lighter';
+  const bg = ctx.createLinearGradient(136, 0, 560, 0);
+  bg.addColorStop(0, 'rgba(255,240,170,0.55)'); bg.addColorStop(1, 'rgba(255,240,170,0)');
+  ctx.fillStyle = bg;
+  ctx.beginPath(); ctx.moveTo(134, -22); ctx.lineTo(560, -90); ctx.lineTo(560, 50); ctx.lineTo(134, -16); ctx.closePath(); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+
+  // --- Водитель позади кузова (низ скрыт кузовом) ---
+  drawDriver(t, car.wave);
+
+  // --- Кузов ---
+  ctx.save();
+  ctx.shadowColor = 'rgba(255,50,70,0.45)'; ctx.shadowBlur = 22;
+  const g = ctx.createLinearGradient(0, -42, 0, 0);
+  g.addColorStop(0, '#c8102e'); g.addColorStop(1, '#7a0010');
+  ctx.fillStyle = g; bodyPath(); ctx.fill();
+  ctx.restore();
+
+  // Блик по верхней линии
+  ctx.save(); bodyPath(); ctx.clip();
+  const hl = ctx.createLinearGradient(0, -42, 0, -18);
+  hl.addColorStop(0, 'rgba(255,255,255,0.45)'); hl.addColorStop(0.35, 'rgba(255,255,255,0)');
+  ctx.fillStyle = hl; ctx.fillRect(-140, -45, 290, 30);
+  // Линия двери и боковой воздухозаборник
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(-40, -29); ctx.lineTo(-42, -6); ctx.moveTo(8, -29); ctx.lineTo(10, -6); ctx.stroke();
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.beginPath(); ctx.roundRect(-30, -14, 34, 5, 2); ctx.fill();
+  ctx.restore();
+
+  // Диски-двигатели
+  drawHoverPad(-80, t);
+  drawHoverPad(88, t);
+
+  // Лобовое стекло под наклоном
+  const wg = ctx.createLinearGradient(20, -64, 44, -40);
+  wg.addColorStop(0, 'rgba(180,230,255,0.75)'); wg.addColorStop(1, 'rgba(60,120,170,0.45)');
+  ctx.fillStyle = wg;
+  ctx.beginPath(); ctx.moveTo(44, -40); ctx.lineTo(24, -64); ctx.lineTo(19, -63); ctx.lineTo(34, -39); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(19, -63); ctx.lineTo(24, -64); ctx.lineTo(44, -40); ctx.stroke();
+
+  // Боковое зеркало
+  ctx.fillStyle = '#8c0b22'; ctx.beginPath(); ctx.ellipse(30, -45, 4, 2.5, 0, 0, TAU); ctx.fill();
+
+  // Фара (светящаяся)
+  ctx.globalCompositeOperation = 'lighter';
+  const fg = ctx.createRadialGradient(130, -19, 0, 130, -19, 14);
+  fg.addColorStop(0, 'rgba(255,255,220,1)'); fg.addColorStop(1, 'rgba(255,220,120,0)');
+  ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(130, -19, 14, 0, TAU); ctx.fill();
+  // Задний стоп-сигнал и сопло
+  ctx.fillStyle = 'rgba(255,40,40,0.9)'; ctx.fillRect(-135, -26, 4, 8);
+  const ng = ctx.createRadialGradient(-136, -18, 0, -136, -18, 16);
+  ng.addColorStop(0, 'rgba(255,255,255,0.95)'); ng.addColorStop(0.4, 'rgba(120,210,255,0.7)'); ng.addColorStop(1, 'rgba(255,120,40,0)');
+  ctx.fillStyle = ng; ctx.beginPath(); ctx.arc(-136, -18, 16, 0, TAU); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+/* ========================================================================
+ * 7. Обновление состояния
+ * ===================================================================== */
+function updateCar(dt) {
+  // Целевая высота: курсор/касание или центр по умолчанию
+  const homeY = H * 0.47;
+  const target = input.active ? clamp(input.y, H * 0.14, H * 0.6) : homeY;
+  car.baseY += (target - car.baseY) * (1 - Math.pow(1 - 0.05, dt * 60));   // lerp 0.05, не зависит от FPS
+
+  // Манёвр: плавный уход вверх/вниз на 80–120 px (easeInOutCubic)
+  car.nextManeuver -= dt;
+  if (!car.maneuver && car.nextManeuver <= 0) {
+    const to = car.maneuverOffset === 0 ? (Math.random() < 0.5 ? -1 : 1) * rand(80, 120) * S : 0;
+    car.maneuver = { t: 0, dur: rand(1.4, 2.2), from: car.maneuverOffset, to };
+  }
+  if (car.maneuver) {
+    const m = car.maneuver;
+    m.t += dt / m.dur;
+    car.maneuverOffset = lerp(m.from, m.to, easeInOutCubic(clamp(m.t, 0, 1)));
+    if (m.t >= 1) { car.maneuver = null; car.nextManeuver = rand(4, 8); }
+  }
+
+  // Покачивание и наклон
+  const bobY = Math.sin(time * 1.5) * 20 * S;
+  car.x = W * 0.40;
+  // не даём машине (вместе с водителем) уйти за верхний/нижний край
+  car.y = clamp(car.baseY + car.maneuverOffset + bobY, 150 * S, H * 0.68);
+  const vy = (car.y - car.prevY) / Math.max(dt, 1e-4);
+  car.vy = damp(car.vy, vy, 8, dt);
+  car.prevY = car.y;
+  const tilt = clamp(car.vy * 0.0006, -0.18, 0.18);                // вниз — нос вниз
+  car.rot = Math.cos(time * 1.5) * 0.05 + tilt;
+
+  // Взмах рукой раз в 5–8 секунд
+  if (car.waveT < 0) {
+    car.nextWave -= dt;
+    if (car.nextWave <= 0) car.waveT = 0;
+  } else {
+    car.waveT += dt;
+    const p = car.waveT / 2.2;
+    car.wave = clamp(Math.sin(clamp(p, 0, 1) * Math.PI) * 2.5, 0, 1);
+    if (p >= 1) { car.waveT = -1; car.wave = 0; car.nextWave = rand(5, 8); }
+  }
+}
+
+// Перевод точки из локальных координат машины в мировые
+function carToWorld(lx, ly) {
+  const c = Math.cos(car.rot), s = Math.sin(car.rot);
+  return { x: car.x + (lx * c - ly * s) * S, y: car.y + (lx * s + ly * c) * S };
+}
+
+function update(dt) {
+  time += dt;
+  boostK = damp(boostK, boostTarget, 3, dt);
+  const baseSpeed = 120;
+  scroll += baseSpeed * boostK * dt;                               // общий скролл параллакса
+
+  // Живые окна
+  for (let i = 0; i < 3; i++) buildings[Math.floor(Math.random() * buildings.length)].toggleRandom();
+
+  updateCar(dt);
+
+  // Выхлоп: ~3–5 частиц за кадр при 60 FPS => ~240/с (в бусте больше)
+  spawnAcc += dt * 240 * (1 + (boostK - 1) * 0.6);
+  while (spawnAcc >= 1) {
+    spawnAcc -= 1;
+    const p = carToWorld(-138, -18 + rand(-4, 4));
+    if (particles.length < 900) particles.push(new Particle(p.x, p.y, boostK));
+  }
+  for (let i = particles.length - 1; i >= 0; i--) {
+    particles[i].update(dt);
+    if (particles[i].life <= 0) particles.splice(i, 1);
+  }
+
+  // Линии скорости
+  for (const l of speedLines) {
+    l.x -= (1.1 * l.v * boostK * 900 / (W + 400)) * dt;
+    if (l.x < -0.4) { l.x = 1.05; l.y = Math.random(); l.len = rand(60, 220); }
+  }
+
+  // Птицы
+  birdTimer -= dt;
+  if (birdTimer <= 0) {
+    birdTimer = rand(6, 12);
+    const y = rand(0.15, 0.5) * H, n = 3 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < n; i++) birds.push({ x: W + 40 + i * 28, y: y + (i % 2) * 14 + i * 4, s: rand(0.8, 1.2), phase: rand(0, TAU) });
+  }
+  for (let i = birds.length - 1; i >= 0; i--) {
+    const b = birds[i];
+    b.x += (-baseSpeed * 0.9 * boostK + 70) * dt; b.phase += dt * 9;
+    if (b.x < -60) birds.splice(i, 1);
+  }
+
+  // Метеоры
+  meteorTimer -= dt;
+  if (meteorTimer <= 0) {
+    meteorTimer = rand(3, 8);
+    meteors.push({ x: rand(0.3, 1) * W, y: rand(0.02, 0.25) * H, vx: -rand(500, 800), vy: rand(150, 300), life: 0.9, maxLife: 0.9 });
+  }
+  for (let i = meteors.length - 1; i >= 0; i--) {
+    const m = meteors[i];
+    m.x += m.vx * dt; m.y += m.vy * dt; m.life -= dt;
+    if (m.life <= 0) meteors.splice(i, 1);
+  }
+}
+
+/* ========================================================================
+ * 8. Рендер
+ * ===================================================================== */
+function render() {
+  ctx.save();
+  // Тряска камеры в бусте
+  const shake = clamp((boostK - 1) / 2, 0, 1) * 3;
+  if (shake > 0.05) ctx.translate(rand(-shake, shake), rand(-shake, shake));
+
+  drawSky();
+  for (const s of stars) s.draw(time, scroll);
+  ctx.globalAlpha = 1;
+  drawMeteors();
+  for (const c of clouds) c.draw(scroll);
+
+  const horizon = H * 0.84;
+  drawMountains(0.06, H * 0.20, '#4a2a6e', horizon, 1.3);          // дальние горы
+  drawMountains(0.10, H * 0.17, '#2b1850', horizon + 12, 4.1);     // ближние горы (×0.1)
+  ctx.fillStyle = '#150c28'; ctx.fillRect(0, H * 0.94, W, H * 0.06);
+  drawCity();
+  drawBirds();
+
+  drawSpeedLines();
+  drawParticles();
+
+  // Машина: translate → rotate → scale; водитель рисуется внутри этой трансформации
+  ctx.save();
+  ctx.translate(car.x, car.y); ctx.rotate(car.rot); ctx.scale(S, S);
+  drawCar(time);
+  ctx.restore();
+
+  // Тёплая дымка у горизонта поверх всего
+  const hz = ctx.createLinearGradient(0, H * 0.7, 0, H);
+  hz.addColorStop(0, 'rgba(255,120,60,0)'); hz.addColorStop(1, 'rgba(255,120,60,0.14)');
+  ctx.fillStyle = hz; ctx.fillRect(0, H * 0.7, W, H * 0.3);
+  ctx.restore();
+}
+
+/* ========================================================================
+ * 9. Ввод
+ * ===================================================================== */
+window.addEventListener('pointermove', e => { input.active = true; input.y = e.clientY; });
+window.addEventListener('pointerdown', e => { input.active = true; input.y = e.clientY; boostTarget = 3; });
+window.addEventListener('pointerup',   () => { boostTarget = 1; });
+window.addEventListener('pointercancel', () => { boostTarget = 1; });
+window.addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); boostTarget = 3; } });
+window.addEventListener('keyup',   e => { if (e.code === 'Space') boostTarget = 1; });
+if (matchMedia('(pointer: coarse)').matches) document.getElementById('hint').textContent = 'Касание — ускорение';
+
+/* ========================================================================
+ * 10. Главный цикл
+ * ===================================================================== */
+let last = 0;
+function loop(ts) {
+  const dt = Math.min((ts - last) / 1000 || 0.016, 0.05);         // защита от больших скачков (смена вкладки)
+  last = ts;
+  update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+
+resize();
+car.baseY = H * 0.47; car.y = car.baseY; car.prevY = car.y;
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
