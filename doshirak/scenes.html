@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Обман доширака</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: #000; }
+  body { font-family: "DejaVu Sans", sans-serif; font-weight: 700; color: #fff; }
+  #stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+  #bg { position: absolute; inset: 0; background: #c81d25; }
+  #rays { position: absolute; left: 50%; top: 42%; width: 3000px; height: 3000px; margin: -1500px 0 0 -1500px;
+          background: repeating-conic-gradient(rgba(255,255,255,.07) 0 10deg, transparent 10deg 20deg); }
+  .scene { position: absolute; inset: 0; opacity: 0; }
+  .abs { position: absolute; }
+  .center { left: 50%; transform: translateX(-50%); }
+  .stroke { -webkit-text-stroke: 14px #111; paint-order: stroke fill; }
+
+  /* ---------- тег сверху ---------- */
+  #tag { position: absolute; top: 150px; left: 50%; transform: translateX(-50%);
+         padding: 22px 54px; border-radius: 26px; font-size: 70px; letter-spacing: 4px;
+         background: #fff; color: #111; opacity: 0; white-space: nowrap; box-shadow: 0 14px 0 rgba(0,0,0,.25); }
+
+  /* ---------- стакан лапши ---------- */
+  .cup { position: absolute; width: 440px; height: 520px; }
+  .cup .body { position: absolute; inset: 40px 0 0 0;
+               clip-path: polygon(0 0, 100% 0, 86% 100%, 14% 100%);
+               background: linear-gradient(90deg, #a5121b, #e63a2e 45%, #b3141d); }
+  .cup .band { position: absolute; left: 30px; right: 30px; top: 210px; height: 130px;
+               background: #ffd23f; clip-path: polygon(0 0, 100% 0, 97% 100%, 3% 100%);
+               color: #b3141d; font-size: 72px; display: flex; align-items: center; justify-content: center; letter-spacing: 3px; }
+  .cup .lid { position: absolute; left: -20px; right: -20px; top: 0; height: 56px; border-radius: 18px;
+              background: linear-gradient(#f5f5f5, #c9c9c9); transform-origin: 0% 100%; box-shadow: 0 6px 0 rgba(0,0,0,.2); }
+  .cup .hole { position: absolute; left: 10px; right: 10px; top: 30px; height: 70px; border-radius: 50%;
+               background: radial-gradient(#3a2a1a, #1e140b); opacity: 0; }
+
+  /* ---------- миска ---------- */
+  .bowlwrap { position: absolute; width: 760px; height: 560px; }
+  .broth { position: absolute; left: 0; top: 120px; width: 760px; height: 190px; border-radius: 50%;
+           background: radial-gradient(#e2903c, #b8611f 70%); border: 14px solid #f4f1ea; }
+  .noodle { position: absolute; height: 26px; border-radius: 13px; background: #ffd77a;
+            border: 4px solid #e6b24f; }
+  .meat { position: absolute; width: 130px; height: 84px; border-radius: 30px;
+          background: linear-gradient(135deg, #8a3b1e, #5b210f); border: 5px solid #3d1508; }
+  .leaf { position: absolute; width: 90px; height: 46px; border-radius: 50% 0; background: #3fae3a; border: 4px solid #237a20; }
+  .carrot { position: absolute; width: 58px; height: 58px; border-radius: 50%; background: radial-gradient(#ffb15c 30%, #f07c12 31%); border: 4px solid #c25e05; }
+  .egg { position: absolute; width: 170px; height: 130px; border-radius: 50%; background: #fff; border: 5px solid #ddd; }
+  .egg::after { content: ""; position: absolute; left: 50px; top: 30px; width: 70px; height: 62px; border-radius: 50%; background: #ffb400; }
+  .bowl { position: absolute; left: 0; top: 215px; width: 760px; height: 340px; border-radius: 0 0 380px 380px;
+          background: linear-gradient(90deg, #dcd8cf, #fff 40%, #d6d1c6); overflow: hidden; }
+  .bowl::after { content: ""; position: absolute; left: 0; right: 0; top: 70px; height: 30px; background: #2c6ecb; }
+  .steam { position: absolute; width: 34px; height: 200px; border-radius: 20px; background: rgba(255,255,255,.55); filter: blur(10px); }
+
+  /* ---------- реальность ---------- */
+  .brick { position: absolute; width: 480px; height: 330px; border-radius: 40px;
+           background: repeating-linear-gradient(35deg, #f6cf6a 0 16px, #dca540 16px 26px),
+                       #f6cf6a; border: 8px solid #b9852a; }
+  .brick::before { content: ""; position: absolute; inset: 0; border-radius: 32px;
+           background: repeating-linear-gradient(-35deg, transparent 0 18px, rgba(160,110,30,.35) 18px 24px); }
+  .sachet { position: absolute; width: 250px; height: 170px; border-radius: 10px;
+            background: linear-gradient(135deg, #e9e9e9, #a9a9a9); border: 6px solid #777;
+            color: #c81d25; font-size: 34px; display: flex; align-items: center; justify-content: center;
+            clip-path: polygon(0 6%, 5% 0, 10% 6%, 15% 0, 20% 6%, 25% 0, 30% 6%, 35% 0, 40% 6%, 45% 0, 50% 6%, 55% 0, 60% 6%, 65% 0, 70% 6%, 75% 0, 80% 6%, 85% 0, 90% 6%, 95% 0, 100% 6%, 100% 100%, 0 100%); }
+  .bit { position: absolute; width: 30px; height: 22px; border-radius: 6px; background: #f07c12; border: 3px solid #b85a00; }
+  .mag { position: absolute; width: 260px; height: 260px; }
+  .mag .glass { position: absolute; inset: 0; border-radius: 50%; border: 24px solid #2b2b2b;
+                background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.55), rgba(180,220,255,.18) 60%); }
+  .mag .handle { position: absolute; width: 50px; height: 190px; left: 210px; top: 190px; border-radius: 25px;
+                 background: #6b3e1e; transform: rotate(-45deg); transform-origin: 50% 0; }
+  .qmark { position: absolute; font-size: 200px; color: #ffd23f; }
+
+  /* ---------- твист ---------- */
+  .pack { position: absolute; width: 760px; height: 620px; border-radius: 36px;
+          background: linear-gradient(160deg, #e63a2e, #a5121b); border: 10px solid #7e0d14; overflow: hidden; }
+  .pack .pic { position: absolute; left: 80px; top: 60px; width: 600px; height: 400px; transform: scale(.78); transform-origin: 0 0; }
+  .pack .fine { position: absolute; right: 40px; bottom: 34px; font-size: 22px; color: #ffe; font-weight: 400; }
+  .bigfine { position: absolute; left: 60px; right: 60px; text-align: center; font-size: 104px; line-height: 1.1; color: #ffd23f; }
+
+  /* ---------- финал ---------- */
+  .chip { position: absolute; padding: 18px 40px; border-radius: 60px; font-size: 62px; background: #fff; color: #1f7a1a;
+          box-shadow: 0 10px 0 rgba(0,0,0,.2); white-space: nowrap; }
+  .subbtn { position: absolute; padding: 34px 80px; border-radius: 30px; background: #ff0033; color: #fff;
+            font-size: 84px; letter-spacing: 3px; box-shadow: 0 16px 0 #8f001d; white-space: nowrap; }
+  .disc { position: absolute; left: 0; right: 0; bottom: 70px; text-align: center; font-size: 30px; font-weight: 400; opacity: .75; }
+
+  /* ---------- субтитры ---------- */
+  #subs { position: absolute; left: 60px; right: 60px; top: 1440px; text-align: center; font-size: 82px; line-height: 1.18; }
+  #subs span { display: inline-block; margin: 0 10px; -webkit-text-stroke: 16px #111; paint-order: stroke fill; }
+  #subs span.on { color: #ffd23f; transform: scale(1.08); }
+
+  .title { position: absolute; left: 40px; right: 40px; text-align: center; font-size: 150px; line-height: 1.02; color: #fff; }
+  .title b { color: #ffd23f; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bg"></div>
+  <div id="rays"></div>
+
+  <!-- 1. Хук -->
+  <div class="scene" id="s0">
+    <div class="title stroke" id="hookTitle" style="top:260px; font-size:118px">ОБМАН<br><b>ДОШИРАКА?!</b></div>
+    <div class="cup" id="cup0" style="left:320px; top:760px">
+      <div class="body"></div><div class="band">ЛАПША</div><div class="lid"></div>
+    </div>
+  </div>
+
+  <!-- 2. Ожидание -->
+  <div class="scene" id="s1">
+    <div class="bowlwrap" id="bowl1" style="left:160px; top:600px">
+      <div class="steam" style="left:200px; top:-160px"></div>
+      <div class="steam" style="left:370px; top:-200px"></div>
+      <div class="steam" style="left:540px; top:-160px"></div>
+      <div class="broth">
+        <div class="noodle" style="left:60px; top:70px; width:260px; transform:rotate(-8deg)"></div>
+        <div class="noodle" style="left:380px; top:40px; width:280px; transform:rotate(10deg)"></div>
+        <div class="noodle" style="left:150px; top:110px; width:420px; transform:rotate(3deg)"></div>
+      </div>
+      <div class="meat pop" style="left:120px; top:115px; transform:rotate(-12deg)"></div>
+      <div class="meat pop" style="left:300px; top:95px; transform:rotate(8deg)"></div>
+      <div class="meat pop" style="left:480px; top:125px; transform:rotate(-4deg)"></div>
+      <div class="leaf pop" style="left:240px; top:175px"></div>
+      <div class="leaf pop" style="left:430px; top:190px; transform:rotate(30deg)"></div>
+      <div class="carrot pop" style="left:80px; top:190px"></div>
+      <div class="carrot pop" style="left:600px; top:180px"></div>
+      <div class="carrot pop" style="left:380px; top:150px"></div>
+      <div class="bowl"></div>
+    </div>
+  </div>
+
+  <!-- 3. Открываем -->
+  <div class="scene" id="s2">
+    <div class="cup" id="cup2" style="left:320px; top:640px; transform:scale(1.35)">
+      <div class="hole"></div>
+      <div class="body"></div><div class="band">ЛАПША</div><div class="lid" id="lid2"></div>
+    </div>
+    <div class="title stroke" id="dots" style="top:330px; font-size:180px">. . . ?</div>
+  </div>
+
+  <!-- 4. Реальность -->
+  <div class="scene" id="s3">
+    <div class="brick" id="brick" style="left:300px; top:560px"></div>
+    <div class="sachet" id="sachet" style="left:180px; top:960px; transform:rotate(-10deg)">порошок</div>
+    <div class="bit" id="b1" style="left:620px; top:1010px"></div>
+    <div class="bit" id="b2" style="left:690px; top:1050px; transform:rotate(30deg)"></div>
+    <div class="bit" id="b3" style="left:650px; top:1100px; transform:rotate(-20deg)"></div>
+    <div class="mag" id="mag3" style="left:560px; top:880px"><div class="handle"></div><div class="glass"></div></div>
+    <div class="qmark stroke" id="q3" style="left:820px; top:380px">?</div>
+  </div>
+
+  <!-- 5. Твист -->
+  <div class="scene" id="s4">
+    <div class="pack" id="pack" style="left:160px; top:430px">
+      <div class="pic">
+        <div class="bowlwrap" style="left:0; top:0">
+          <div class="broth">
+            <div class="noodle" style="left:150px; top:90px; width:420px"></div>
+          </div>
+          <div class="meat" style="left:160px; top:110px"></div>
+          <div class="meat" style="left:420px; top:110px"></div>
+          <div class="leaf" style="left:320px; top:170px"></div>
+          <div class="bowl"></div>
+        </div>
+      </div>
+      <div class="fine">*вариант сервировки</div>
+    </div>
+    <div class="mag" id="mag4" style="left:620px; top:830px"><div class="handle"></div><div class="glass"></div></div>
+    <div class="bigfine stroke" id="bigfine" style="top:1120px">«вариант<br>сервировки»</div>
+  </div>
+
+  <!-- 6. Финал -->
+  <div class="scene" id="s5">
+    <div class="bowlwrap" id="bowl5" style="left:160px; top:560px">
+      <div class="broth">
+        <div class="noodle" style="left:150px; top:90px; width:420px"></div>
+      </div>
+      <div class="egg add" style="left:300px; top:80px"></div>
+      <div class="meat add" style="left:110px; top:120px"></div>
+      <div class="meat add" style="left:520px; top:120px"></div>
+      <div class="leaf add" style="left:230px; top:190px"></div>
+      <div class="leaf add" style="left:470px; top:195px; transform:rotate(25deg)"></div>
+      <div class="bowl"></div>
+    </div>
+    <div class="chip" id="c1" style="left:80px; top:400px">+ яйцо</div>
+    <div class="chip" id="c2" style="left:400px; top:340px">+ мясо</div>
+    <div class="chip" id="c3" style="left:650px; top:450px">+ зелень</div>
+    <div class="abs" style="left:0; right:0; top:1180px; display:flex; justify-content:center"><div class="subbtn" id="subbtn" style="position:relative">ПОДПИШИСЬ</div></div>
+    <div class="disc">Юмор. Картинка на упаковке — вариант сервировки.</div>
+  </div>
+
+  <div id="tag">ОЖИДАНИЕ</div>
+  <div id="subs"></div>
+</div>
+
+<script src="node_modules/gsap/dist/gsap.min.js"></script>
+<script>
+const T = window.TIMING;              // [{dur, words:[{w,s,e}]}] — из edge-tts
+const PAD = 0.35;                     // пауза после каждой фразы
+const starts = []; let acc = 0;
+T.forEach(t => { starts.push(acc); acc += t.dur + PAD; });
+window.TOTAL = acc;
+
+const tl = gsap.timeline({ paused: true });
+const S = i => "#s" + i;
+
+// показ/скрытие сцен
+T.forEach((t, i) => {
+  tl.set(S(i), { opacity: 1 }, starts[i]);
+  if (i < T.length - 1) tl.set(S(i), { opacity: 0 }, starts[i + 1]);
+});
+tl.to("#rays", { rotation: 360 * 2, duration: acc, ease: "none" }, 0);
+
+// фон и тег по сценам
+const BG = ["#c81d25", "#2a9d8f", "#3b3b58", "#5c5c5c", "#264653", "#e76f51"];
+BG.forEach((c, i) => tl.set("#bg", { background: c }, starts[i]));
+function tag(i, text, color) {
+  tl.set("#tag", { textContent: text, color: color, opacity: 1, scale: 0 }, starts[i]);
+  tl.to("#tag", { scale: 1, duration: .35, ease: "back.out(3)" }, starts[i]);
+}
+function hideTag(i) { tl.set("#tag", { opacity: 0 }, starts[i]); }
+
+// 1. хук
+tl.from("#hookTitle", { scale: 3, opacity: 0, duration: .45, ease: "power4.in" }, 0.05);
+tl.to("#hookTitle", { x: "+=14", duration: .05, repeat: 13, yoyo: true }, .5);
+tl.from("#cup0", { y: 900, duration: .6, ease: "back.out(1.6)" }, .3);
+tl.to("#cup0", { rotation: 6, duration: .25, repeat: 11, yoyo: true, ease: "sine.inOut" }, .9);
+
+// 2. ожидание
+tag(1, "ОЖИДАНИЕ", "#2a9d8f");
+tl.from("#bowl1", { scale: .2, opacity: 0, duration: .5, ease: "back.out(1.7)" }, starts[1]);
+tl.from("#s1 .pop", { scale: 0, duration: .35, stagger: .18, ease: "back.out(3)" }, starts[1] + .5);
+tl.to("#s1 .steam", { y: -60, opacity: .2, duration: 1, repeat: 5, yoyo: true, stagger: .3, ease: "sine.inOut" }, starts[1]);
+
+// 3. открываем
+hideTag(2);
+tl.from("#cup2", { y: 700, duration: .5, ease: "power3.out" }, starts[2]);
+tl.to("#lid2", { rotation: -110, x: -40, y: -60, duration: .9, ease: "power2.inOut" }, starts[2] + 1.0);
+tl.to("#s2 .hole", { opacity: 1, duration: .3 }, starts[2] + 1.3);
+tl.from("#dots", { opacity: 0, scale: .5, duration: .4 }, starts[2] + 1.9);
+
+// 4. реальность
+tag(3, "РЕАЛЬНОСТЬ", "#5c5c5c");
+tl.from("#brick", { y: -900, rotation: -25, duration: .55, ease: "bounce.out" }, starts[3]);
+tl.from("#sachet", { x: -700, duration: .5, ease: "back.out(1.4)" }, starts[3] + 1.3);
+tl.from(["#b1", "#b2", "#b3"], { scale: 0, duration: .25, stagger: .35, ease: "back.out(4)" }, starts[3] + 2.6);
+tl.from("#mag3", { x: 600, duration: .5 }, starts[3] + 4.2);
+tl.to("#mag3", { x: -380, y: -320, duration: 1.2, ease: "sine.inOut", yoyo: true, repeat: 1 }, starts[3] + 4.7);
+tl.from("#q3", { scale: 0, rotation: -40, duration: .4, ease: "back.out(3)" }, starts[3] + 5.2);
+
+// 5. твист
+tag(4, "ПОДВОХ?", "#264653");
+tl.from("#pack", { scale: .6, opacity: 0, duration: .5, ease: "back.out(1.5)" }, starts[4]);
+tl.from("#mag4", { x: 500, y: 400, duration: .7, ease: "power2.out" }, starts[4] + 2.0);
+tl.to("#mag4", { x: 30, y: 40, scale: 1.15, duration: .6 }, starts[4] + 2.8);
+tl.from("#bigfine", { scale: 0, duration: .45, ease: "back.out(2.5)" }, starts[4] + 3.4);
+tl.to("#bigfine", { scale: 1.06, duration: .4, repeat: 7, yoyo: true, ease: "sine.inOut" }, starts[4] + 4);
+
+// 6. финал
+tag(5, "КАК НА КАРТИНКЕ", "#e76f51");
+tl.from("#bowl5", { y: 900, duration: .5, ease: "back.out(1.4)" }, starts[5]);
+tl.from("#c1", { scale: 0, duration: .35, ease: "back.out(3)" }, starts[5] + 1.6);
+tl.from("#c2", { scale: 0, duration: .35, ease: "back.out(3)" }, starts[5] + 2.0);
+tl.from("#c3", { scale: 0, duration: .35, ease: "back.out(3)" }, starts[5] + 2.5);
+tl.from("#s5 .add", { y: -500, opacity: 0, duration: .45, stagger: .25, ease: "bounce.out" }, starts[5] + 1.6);
+tl.from("#subbtn", { scale: 0, duration: .45, ease: "back.out(3)" }, starts[5] + 3.8);
+tl.to("#subbtn", { scale: 1.1, duration: .3, repeat: 7, yoyo: true, ease: "sine.inOut" }, starts[5] + 4.3);
+
+// ---- караоке-субтитры: группы по 3 слова, подсветка текущего ----
+const subs = document.getElementById("subs");
+const groups = [];
+T.forEach((t, i) => {
+  const ws = t.words;
+  for (let k = 0; k < ws.length; k += 3) {
+    const g = ws.slice(k, k + 3);
+    const next = ws[k + 3];
+    groups.push({ words: g.map(w => ({ w: w.w, s: starts[i] + w.s })),
+                  s: starts[i] + g[0].s, e: next ? starts[i] + next.s : starts[i] + t.dur + PAD * .8 });
+  }
+});
+function renderSubs(time) {
+  const g = groups.find(g => time >= g.s && time < g.e);
+  if (!g) { subs.innerHTML = ""; return; }
+  subs.innerHTML = g.words.map((w, j) => {
+    const end = j + 1 < g.words.length ? g.words[j + 1].s : g.e;
+    return `<span class="${time >= w.s && time < end ? "on" : ""}">${w.w.toUpperCase()}</span>`;
+  }).join(" ");
+}
+
+window.seek = (time) => { tl.seek(time, false); renderSubs(time); };
+window.seek(0);
+</script>
+</body>
+</html>
