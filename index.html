@@ -13,6 +13,30 @@
 <body>
   <canvas id="game"></canvas>
 
+  <div id="hud" class="hidden">
+    <div id="hud-left" class="hud-box">
+      <div>Круг <b class="big-num" id="lap">1/3</b></div>
+      <div>Место <b class="big-num" id="place">1/4</b></div>
+      <div>Время круга <b id="laptime">00:00.000</b></div>
+      <div>Лучший круг <b id="bestlap">--:--.---</b></div>
+    </div>
+    <canvas id="minimap" width="180" height="180"></canvas>
+    <div id="hud-speed" class="hud-box"><span id="speed">0</span><span class="unit">км/ч</span></div>
+    <div id="message"></div>
+    <div id="mute"></div>
+  </div>
+
+  <div id="finish" class="overlay hidden">
+    <div class="panel">
+      <h2>ФИНИШ!</h2>
+      <div class="final-line">Ваше место: <b id="fin-place">1</b></div>
+      <div class="final-line">Общее время: <b id="fin-total">00:00.000</b></div>
+      <div class="final-line">Лучший круг: <b id="fin-best">00:00.000</b></div>
+      <table id="results"></table>
+      <button id="btn-again" class="big">Ещё раз</button>
+    </div>
+  </div>
+
   <div id="menu" class="overlay">
     <div class="panel">
       <h1>НЕОНОВЫЙ ТРЕК</h1>
