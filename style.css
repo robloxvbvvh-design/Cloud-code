@@ -1,0 +1,73 @@
+:root {
+  --neon: #19e6ff;
+  --neon2: #ff2e97;
+  --bg: #070a1a;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; height: 100%; overflow: hidden;
+  background: var(--bg); color: #fff;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  user-select: none;
+}
+#game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+.hidden { display: none !important; }
+
+.overlay {
+  position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(10,16,48,.55), rgba(3,5,15,.9));
+  z-index: 20;
+}
+.panel {
+  text-align: center; padding: 28px 44px; border: 2px solid var(--neon); border-radius: 14px;
+  background: rgba(8,12,32,.8); box-shadow: 0 0 30px rgba(25,230,255,.45), inset 0 0 20px rgba(25,230,255,.15);
+  max-width: 92vw;
+}
+.panel h1 {
+  margin: 0 0 4px; font-size: 44px; letter-spacing: 6px; color: var(--neon);
+  text-shadow: 0 0 12px var(--neon), 0 0 28px var(--neon2);
+}
+.panel h2 { margin: 0 0 10px; color: var(--neon2); text-shadow: 0 0 12px var(--neon2); font-size: 34px; }
+.panel .sub { margin: 0 0 18px; opacity: .8; }
+button.big {
+  font: inherit; font-size: 24px; padding: 10px 44px; cursor: pointer; color: #fff; background: transparent;
+  border: 2px solid var(--neon2); border-radius: 10px; box-shadow: 0 0 16px var(--neon2);
+  text-transform: uppercase; letter-spacing: 3px; margin-bottom: 18px;
+}
+button.big:hover { background: rgba(255,46,151,.25); }
+table.controls { margin: 0 auto; border-collapse: collapse; text-align: left; }
+table.controls td { padding: 3px 12px; font-size: 15px; }
+table.controls td:first-child { color: var(--neon); font-weight: 600; white-space: nowrap; }
+
+#hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; text-shadow: 0 0 8px #000; }
+.hud-box {
+  position: absolute; padding: 8px 14px; border-radius: 10px;
+  background: rgba(5,8,24,.55); border: 1px solid rgba(25,230,255,.5);
+}
+#hud-left { left: 16px; top: 16px; font-size: 18px; line-height: 1.5; min-width: 190px; }
+#hud-left b { color: var(--neon); }
+#hud-left .big-num { font-size: 30px; font-weight: 700; }
+#hud-speed { right: 20px; bottom: 20px; text-align: right; }
+#hud-speed #speed { font-size: 56px; font-weight: 800; color: var(--neon); line-height: 1; }
+#hud-speed span.unit { font-size: 16px; opacity: .8; margin-left: 6px; }
+#minimap { position: absolute; right: 16px; top: 16px; width: 180px; height: 180px;
+  background: rgba(5,8,24,.55); border: 1px solid rgba(25,230,255,.5); border-radius: 10px; }
+#message {
+  position: absolute; left: 0; right: 0; top: 24%; text-align: center;
+  font-size: 84px; font-weight: 900; letter-spacing: 6px; color: #fff;
+  text-shadow: 0 0 18px var(--neon), 0 0 40px var(--neon2);
+}
+#message.small { font-size: 44px; }
+#message.warn { color: #ff5566; text-shadow: 0 0 18px #ff2244; }
+#mute { position: absolute; left: 16px; bottom: 16px; font-size: 14px; opacity: .7; }
+
+#results { margin: 8px auto 16px; border-collapse: collapse; min-width: 320px; text-align: left; }
+#results td { padding: 4px 12px; border-bottom: 1px solid rgba(25,230,255,.25); }
+.final-line { font-size: 20px; margin: 4px 0; }
+.final-line b { color: var(--neon); }
+
+@media (max-width: 700px) {
+  .panel h1 { font-size: 28px; letter-spacing: 3px; }
+  #message { font-size: 48px; }
+  #minimap { width: 120px; height: 120px; }
+}

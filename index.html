@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Неоновый трек</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+  </script>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="menu" class="overlay">
+    <div class="panel">
+      <h1>НЕОНОВЫЙ ТРЕК</h1>
+      <p class="sub">3 круга против 3 ботов</p>
+      <button id="btn-start" class="big">Старт</button>
+      <table class="controls">
+        <tr><td>W / ↑</td><td>газ</td></tr>
+        <tr><td>S / ↓</td><td>тормоз / задний ход</td></tr>
+        <tr><td>A D / ← →</td><td>руль</td></tr>
+        <tr><td>Пробел</td><td>ручник (дрифт)</td></tr>
+        <tr><td>R</td><td>вернуть на трассу</td></tr>
+        <tr><td>C</td><td>смена камеры</td></tr>
+        <tr><td>Esc / P</td><td>пауза</td></tr>
+        <tr><td>M</td><td>звук вкл/выкл</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
