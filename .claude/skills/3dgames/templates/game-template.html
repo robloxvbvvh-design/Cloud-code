@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>3D Game</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1020; font-family: system-ui, sans-serif; }
+  canvas { display: block; }
+  #hud { position: fixed; top: 12px; left: 12px; color: #fff; font-weight: 700; font-size: 18px;
+         text-shadow: 0 2px 6px #000a; pointer-events: none; }
+  #center { position: fixed; inset: 0; display: grid; place-items: center; color: #fff; text-align: center;
+            background: #0008; font-size: 20px; }
+  #center h1 { margin: 0 0 8px; font-size: 42px; }
+  .hidden { display: none !important; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+  "cannon-es": "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"
+} }
+</script>
+</head>
+<body>
+<div id="hud">Очки: <span id="score">0</span> · Время: <span id="time">60</span></div>
+<div id="center"><div><h1>3D GAME</h1>Клик — начать · WASD — движение · Пробел — прыжок<br>Мышь — камера · Esc — пауза · R — заново</div></div>
+
+<script type="module">
+import * as THREE from 'three';
+import * as CANNON from 'cannon-es';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+// ---------- Рендер ----------
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87b5e8);
+scene.fog = new THREE.Fog(0x87b5e8, 40, 120);
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 300);
+
+scene.add(new THREE.HemisphereLight(0xdfefff, 0x4a3b2a, 0.6));
+const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+sun.position.set(20, 35, 15);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40, near: 1, far: 100 });
+scene.add(sun);
+
+// ---------- Физика ----------
+const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -20, 0) });
+world.broadphase = new CANNON.SAPBroadphase(world);
+world.allowSleep = true;
+const matGround = new CANNON.Material('ground');
+const matPlayer = new CANNON.Material('player');
+world.addContactMaterial(new CANNON.ContactMaterial(matGround, matPlayer, { friction: 0, restitution: 0 }));
+world.defaultContactMaterial.friction = 0.4;
+
+const objects = []; // { mesh, body }
+function add(mesh, body) { scene.add(mesh); world.addBody(body); const o = { mesh, body }; objects.push(o); return o; }
+function remove(o) { scene.remove(o.mesh); world.removeBody(o.body); objects.splice(objects.indexOf(o), 1); }
+
+// ---------- Процедурная текстура ----------
+function canvasTexture(size, draw) {
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  draw(c.getContext('2d'), size);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
+  return t;
+}
+const groundTex = canvasTexture(256, (g, s) => {
+  g.fillStyle = '#5c9e5a'; g.fillRect(0, 0, s, s);
+  g.fillStyle = '#548f52'; g.fillRect(0, 0, s / 2, s / 2); g.fillRect(s / 2, s / 2, s / 2, s / 2);
+});
+groundTex.repeat.set(30, 30);
+
+// ---------- Мир ----------
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), new THREE.MeshStandardMaterial({ map: groundTex, roughness: 0.9 }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+const groundBody = new CANNON.Body({ mass: 0, shape: new CANNON.Plane(), material: matGround });
+groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0); world.addBody(groundBody);
+
+const boxGeo = new RoundedBoxGeometry(1, 1, 1, 3, 0.08);
+const palette = [0xf4a261, 0xe76f51, 0x2a9d8f, 0xe9c46a];
+function createBox(x, y, z, size = 1, mass = 2) {
+  const mesh = new THREE.Mesh(boxGeo, new THREE.MeshStandardMaterial({ color: palette[(Math.random() * 4) | 0], roughness: 0.5 }));
+  mesh.scale.setScalar(size); mesh.castShadow = mesh.receiveShadow = true;
+  const body = new CANNON.Body({ mass, shape: new CANNON.Box(new CANNON.Vec3(size / 2, size / 2, size / 2)), material: matGround });
+  body.position.set(x, y, z);
+  body.addEventListener('collide', e => { const v = Math.abs(e.contact.getImpactVelocityAlongNormal()); if (v > 4) beep(120 + Math.random() * 60, 0.05, Math.min(v / 20, 0.3)); });
+  return add(mesh, body);
+}
+function createPlatform(x, y, z, w, h, d) {
+  const mesh = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 3, 0.15), new THREE.MeshStandardMaterial({ color: 0x8d99ae, roughness: 0.7 }));
+  mesh.position.set(x, y, z); mesh.castShadow = mesh.receiveShadow = true; scene.add(mesh);
+  const body = new CANNON.Body({ mass: 0, shape: new CANNON.Box(new CANNON.Vec3(w / 2, h / 2, d / 2)), material: matGround });
+  body.position.set(x, y, z); world.addBody(body);
+}
+
+// ---------- Игрок ----------
+function createPlayerMesh() {
+  const g = new THREE.Group();
+  const m = new THREE.MeshStandardMaterial({ color: 0x4cc9f0, metalness: 0.4, roughness: 0.3 });
+  const bodyM = new THREE.Mesh(new THREE.CapsuleGeometry(0.45, 0.5, 6, 16), m); bodyM.position.y = 0.2; g.add(bodyM);
+  const visor = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.14, 0.1),
+    new THREE.MeshStandardMaterial({ color: 0, emissive: 0xff4d6d, emissiveIntensity: 3 }));
+  visor.position.set(0, 0.5, 0.42); g.add(visor);
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return g;
+}
+const RADIUS = 0.5;
+const player = add(createPlayerMesh(), new CANNON.Body({ mass: 5, shape: new CANNON.Sphere(RADIUS), fixedRotation: true, linearDamping: 0.05, material: matPlayer }));
+player.body.allowSleep = false;
+
+function onGround() {
+  const p = player.body.position, r = new CANNON.RaycastResult();
+  world.raycastClosest(p, new CANNON.Vec3(p.x, p.y - RADIUS - 0.15, p.z), { skipBackfaces: true }, r);
+  return r.hasHit && r.body !== player.body;
+}
+
+// ---------- Монеты (триггеры) ----------
+const coinGeo = new THREE.TorusGeometry(0.35, 0.12, 12, 24);
+const coinMat = new THREE.MeshStandardMaterial({ color: 0xffd166, metalness: 1, roughness: 0.25, emissive: 0x553300 });
+const coins = [];
+function createCoin(x, y, z) {
+  const mesh = new THREE.Mesh(coinGeo, coinMat); mesh.position.set(x, y, z); mesh.castShadow = true; scene.add(mesh);
+  coins.push(mesh);
+}
+
+// ---------- Частицы ----------
+const particles = [];
+const partGeo = new THREE.SphereGeometry(0.08, 6, 4);
+function burst(pos, color, n = 16) {
+  const mat = new THREE.MeshBasicMaterial({ color });
+  for (let i = 0; i < n; i++) {
+    const m = new THREE.Mesh(partGeo, mat); m.position.copy(pos); scene.add(m);
+    particles.push({ m, v: new THREE.Vector3((Math.random() - 0.5) * 8, Math.random() * 7, (Math.random() - 0.5) * 8), life: 0.8 });
+  }
+}
+
+// ---------- Звук ----------
+let actx;
+function beep(freq, dur = 0.1, vol = 0.2, type = 'square') {
+  if (!actx) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.value = freq; g.gain.value = vol;
+  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
+  o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + dur);
+}
+
+// ---------- Ввод ----------
+const keys = {};
+addEventListener('keydown', e => { keys[e.code] = true; if (e.code === 'KeyR') reset(); });
+addEventListener('keyup', e => { keys[e.code] = false; });
+let yaw = 0, pitch = 0.35, locked = false;
+const centerEl = document.getElementById('center');
+renderer.domElement.addEventListener('click', () => renderer.domElement.requestPointerLock?.());
+centerEl.addEventListener('click', () => { actx ??= new AudioContext(); renderer.domElement.requestPointerLock?.(); paused = false; centerEl.classList.add('hidden'); });
+document.addEventListener('pointerlockchange', () => { locked = document.pointerLockElement === renderer.domElement; if (!locked && state === 'play') { paused = true; centerEl.classList.remove('hidden'); } });
+addEventListener('mousemove', e => { if (!locked) return; yaw -= e.movementX * 0.003; pitch = THREE.MathUtils.clamp(pitch + e.movementY * 0.003, -0.2, 1.2); });
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+
+// ---------- Состояние игры ----------
+let score = 0, timeLeft = 60, paused = true, state = 'play', shake = 0;
+const scoreEl = document.getElementById('score'), timeEl = document.getElementById('time');
+
+function buildLevel() {
+  for (let i = 0; i < 5; i++) for (let j = 0; j < 5 - i; j++) createBox(-6 + j * 1.05 + i * 0.5, 0.5 + i * 1.0, -8);
+  createPlatform(6, 1, -4, 4, 0.5, 4); createPlatform(10, 2.5, -8, 3, 0.5, 3); createPlatform(6, 4, -12, 3, 0.5, 3);
+  for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; createCoin(Math.cos(a) * 12, 1, Math.sin(a) * 12); }
+  createCoin(6, 2, -4); createCoin(10, 3.5, -8); createCoin(6, 5, -12);
+}
+function reset() {
+  for (const o of [...objects]) if (o !== player) remove(o);
+  for (const c of coins) scene.remove(c); coins.length = 0;
+  buildLevel();
+  player.body.position.set(0, 2, 0); player.body.velocity.set(0, 0, 0);
+  score = 0; timeLeft = 60; state = 'play'; scoreEl.textContent = 0;
+}
+reset();
+
+// ---------- Цикл ----------
+const clock = new THREE.Clock();
+const camTarget = new THREE.Vector3();
+const tmp = new THREE.Vector3();
+let jumpLatch = false;
+
+function update(dt) {
+  // движение относительно камеры
+  const f = (keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0), s = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0);
+  const fwd = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)), right = new THREE.Vector3(-fwd.z, 0, fwd.x);
+  const dir = fwd.multiplyScalar(f).add(right.multiplyScalar(s));
+  if (dir.lengthSq() > 0) dir.normalize();
+  const grounded = onGround(), speed = 8, accel = grounded ? 12 : 4;
+  const v = player.body.velocity;
+  v.x += (dir.x * speed - v.x) * Math.min(accel * dt, 1);
+  v.z += (dir.z * speed - v.z) * Math.min(accel * dt, 1);
+  if (keys.Space && grounded && !jumpLatch) { v.y = 9; beep(440, 0.12, 0.15, 'triangle'); jumpLatch = true; }
+  if (!keys.Space) jumpLatch = false;
+  if (dir.lengthSq() > 0) player.mesh.rotation.y = Math.atan2(dir.x, dir.z);
+
+  world.fixedStep(1 / 60, dt);
+  for (const o of objects) { o.mesh.position.copy(o.body.position); if (o !== player) o.mesh.quaternion.copy(o.body.quaternion); }
+
+  // монеты
+  const t = clock.elapsedTime;
+  for (let i = coins.length - 1; i >= 0; i--) {
+    const c = coins[i]; c.rotation.y = t * 3;
+    if (c.position.distanceTo(player.mesh.position) < 1) {
+      burst(c.position, 0xffd166); scene.remove(c); coins.splice(i, 1);
+      score += 10; scoreEl.textContent = score; beep(880, 0.08, 0.15); setTimeout(() => beep(1320, 0.1, 0.15), 70); shake = 0.15;
+    }
+  }
+  // частицы
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i]; p.life -= dt; p.v.y -= 15 * dt; p.m.position.addScaledVector(p.v, dt); p.m.scale.setScalar(Math.max(p.life, 0) / 0.8);
+    if (p.life <= 0) { scene.remove(p.m); particles.splice(i, 1); }
+  }
+  // таймер, победа/поражение
+  timeLeft -= dt; timeEl.textContent = Math.max(0, Math.ceil(timeLeft));
+  if (player.body.position.y < -10) { player.body.position.set(0, 2, 0); player.body.velocity.set(0, 0, 0); }
+  if (coins.length === 0 || timeLeft <= 0) {
+    state = 'over'; paused = true; document.exitPointerLock?.();
+    centerEl.innerHTML = `<div><h1>${coins.length === 0 ? 'Победа!' : 'Время вышло'}</h1>Очки: ${score}<br>Нажми R, затем клик</div>`;
+    centerEl.classList.remove('hidden');
+  }
+}
+
+function updateCamera(dt) {
+  const dist = 9;
+  camTarget.copy(player.mesh.position).add(tmp.set(0, 1.2, 0));
+  const desired = new THREE.Vector3(
+    camTarget.x + Math.sin(yaw) * Math.cos(pitch) * dist,
+    camTarget.y + Math.sin(pitch) * dist,
+    camTarget.z + Math.cos(yaw) * Math.cos(pitch) * dist);
+  camera.position.lerp(desired, 1 - Math.exp(-10 * dt));
+  if (shake > 0) { camera.position.x += (Math.random() - 0.5) * shake; camera.position.y += (Math.random() - 0.5) * shake; shake -= dt; }
+  camera.lookAt(camTarget);
+  sun.position.set(camTarget.x + 20, 35, camTarget.z + 15); sun.target.position.copy(camTarget); sun.target.updateMatrixWorld();
+}
+
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(clock.getDelta(), 0.1);
+  if (!paused) update(dt);
+  updateCamera(dt);
+  renderer.render(scene, camera);
+});
+</script>
+</body>
+</html>
