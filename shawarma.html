@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Шаурма падает</title>
+<style>
+  :root { --bg1:#ffe9c7; --bg2:#ffb36b; --ink:#4a2a12; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg1:#2b1a10; --bg2:#5a2f14; --ink:#ffe2bf; }
+  }
+  html, body { margin:0; height:100%; overflow:hidden; }
+  body { background: linear-gradient(var(--bg1), var(--bg2)); font-family: system-ui, sans-serif; color: var(--ink); }
+  canvas { display:block; width:100vw; height:100vh; cursor:pointer; }
+  #hud { position:fixed; top:16px; left:16px; right:16px; pointer-events:none; }
+  #hud h1 { margin:0; font-size:clamp(22px,5vw,40px); }
+  #hud p { margin:4px 0 0; opacity:.75; font-size:14px; }
+  #count { font-variant-numeric: tabular-nums; font-weight:700; }
+</style>
+</head>
+<body>
+<div id="hud">
+  <h1>🌯 Шаурма падает</h1>
+  <p>Нажми на экран — упадёт ещё. Пробел — шаурмопад. Упало: <span id="count">0</span></p>
+</div>
+<canvas id="c"></canvas>
+<script>
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+const countEl = document.getElementById('count');
+let W, H, DPR;
+function resize() {
+  DPR = window.devicePixelRatio || 1;
+  W = innerWidth; H = innerHeight;
+  cv.width = W * DPR; cv.height = H * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+addEventListener('resize', resize); resize();
+
+const GRAV = 1800, FLOOR_PAD = 30, MAX = 60;
+const items = [], crumbs = [];
+let total = 0;
+
+function spawn(x) {
+  const s = 0.7 + Math.random() * 0.6;
+  items.push({
+    x: x ?? Math.random() * W, y: -80 * s,
+    vx: (Math.random() - 0.5) * 200, vy: Math.random() * 100,
+    a: Math.random() * Math.PI * 2, va: (Math.random() - 0.5) * 8,
+    s, rest: false, squash: 0, life: 0
+  });
+  if (items.length > MAX) items.shift();
+  countEl.textContent = ++total;
+}
+
+function burst(x, y) {
+  const cols = ['#c0392b', '#7cb342', '#8d5a2b', '#fff3d6', '#e67e22'];
+  for (let i = 0; i < 10; i++) crumbs.push({
+    x, y, vx: (Math.random() - 0.5) * 400, vy: -Math.random() * 500,
+    r: 2 + Math.random() * 3, c: cols[i % cols.length], t: 1
+  });
+}
+
+// Draw one shawarma centered at origin, pointing up, length ~140, width ~52
+function drawShawarma() {
+  // filling peeking out of the top
+  const fill = [['#7cb342', -18, -66, 10], ['#c0392b', 4, -70, 9], ['#8d5a2b', -4, -64, 11],
+                ['#8d5a2b', 14, -62, 9], ['#7cb342', 18, -68, 8], ['#fff3d6', -10, -72, 7]];
+  for (const [c, x, y, r] of fill) { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); }
+  // lavash
+  const g = ctx.createLinearGradient(-26, 0, 26, 0);
+  g.addColorStop(0, '#d9a35b'); g.addColorStop(0.5, '#f5d39a'); g.addColorStop(1, '#c98c45');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(-26, -58);
+  ctx.quadraticCurveTo(0, -70, 26, -58);
+  ctx.lineTo(24, 62);
+  ctx.quadraticCurveTo(0, 74, -24, 62);
+  ctx.closePath(); ctx.fill();
+  // grill marks
+  ctx.strokeStyle = 'rgba(120,60,20,.45)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  for (let i = -40; i <= 10; i += 16) { ctx.beginPath(); ctx.moveTo(-18, i); ctx.lineTo(16, i + 12); ctx.stroke(); }
+  // wrap seam
+  ctx.strokeStyle = 'rgba(140,80,30,.6)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(-26, -58); ctx.quadraticCurveTo(-4, -20, 22, 30); ctx.stroke();
+  // paper wrapper
+  ctx.fillStyle = '#f4f1ea';
+  ctx.beginPath();
+  ctx.moveTo(-27, 18); ctx.lineTo(-10, 26); ctx.lineTo(5, 16); ctx.lineTo(27, 24);
+  ctx.lineTo(25, 64); ctx.quadraticCurveTo(0, 78, -25, 64); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#d64541'; ctx.fillRect(-25, 40, 50, 6);
+}
+
+let last = performance.now(), auto = 0, rain = 0;
+function frame(now) {
+  const dt = Math.min(0.033, (now - last) / 1000); last = now;
+  auto += dt;
+  if (auto > 0.7) { auto = 0; spawn(); }
+  if (rain > 0) { rain -= dt; if (Math.random() < 0.5) spawn(); }
+
+  const floor = H - FLOOR_PAD;
+  for (const it of items) {
+    it.life += dt;
+    if (!it.rest) {
+      it.vy += GRAV * dt;
+      it.x += it.vx * dt; it.y += it.vy * dt; it.a += it.va * dt;
+      const half = 30 * it.s;
+      if (it.y + half > floor) {
+        it.y = floor - half;
+        if (Math.abs(it.vy) > 250) burst(it.x, floor);
+        it.squash = Math.min(0.35, it.vy / 3000);
+        it.vy *= -0.45; it.vx *= 0.7; it.va *= 0.6;
+        if (Math.abs(it.vy) < 80) {
+          it.vy = 0; it.rest = true;
+          // settle lying on its side
+          it.a = Math.round(it.a / Math.PI) * Math.PI + Math.PI / 2;
+        }
+      }
+      if (it.x < 30 || it.x > W - 30) { it.vx *= -0.8; it.x = Math.max(30, Math.min(W - 30, it.x)); }
+    }
+    it.squash *= Math.pow(0.002, dt);
+  }
+  for (const c of crumbs) { c.vy += GRAV * dt; c.x += c.vx * dt; c.y += c.vy * dt; c.t -= dt * 1.2; }
+  for (let i = crumbs.length - 1; i >= 0; i--) if (crumbs[i].t <= 0 || crumbs[i].y > H) crumbs.splice(i, 1);
+
+  ctx.clearRect(0, 0, W, H);
+  // floor shadow line
+  ctx.fillStyle = 'rgba(0,0,0,.12)'; ctx.fillRect(0, floor, W, FLOOR_PAD);
+
+  for (const it of items) {
+    // shadow
+    const d = Math.max(0, floor - it.y);
+    ctx.fillStyle = `rgba(0,0,0,${0.18 * Math.max(0, 1 - d / 600)})`;
+    ctx.beginPath(); ctx.ellipse(it.x, floor + 4, 50 * it.s * Math.max(0.2, 1 - d / 1500), 7 * it.s, 0, 0, 7); ctx.fill();
+
+    ctx.save();
+    ctx.translate(it.x, it.y);
+    ctx.scale(it.s * (1 + it.squash), it.s * (1 - it.squash));
+    ctx.rotate(it.a);
+    drawShawarma();
+    ctx.restore();
+  }
+  for (const c of crumbs) {
+    ctx.globalAlpha = Math.max(0, c.t); ctx.fillStyle = c.c;
+    ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, 7); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(frame);
+}
+
+cv.addEventListener('pointerdown', e => spawn(e.clientX));
+addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); rain = 2; } });
+for (let i = 0; i < 3; i++) setTimeout(() => spawn(), i * 250);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
