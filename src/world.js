@@ -9,9 +9,9 @@ export class World {
     this.scene.fog = new THREE.Fog(SKY, 160, 720);
 
     // Свет
-    const hemi = new THREE.HemisphereLight(0x7a8cff, 0x1a2a14, 0.9);
+    const hemi = new THREE.HemisphereLight(0x7a8cff, 0x1a2a14, 1.5);
     this.scene.add(hemi);
-    const sun = new THREE.DirectionalLight(0xaebbff, 1.1);
+    const sun = new THREE.DirectionalLight(0xc4ceff, 1.6);
     sun.position.set(60, 120, 40);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
