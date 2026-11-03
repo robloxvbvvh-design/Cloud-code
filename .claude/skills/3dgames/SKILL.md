@@ -38,7 +38,7 @@ description: Создаёт браузерные 3D-игры с физикой �
 
 - `renderer.setPixelRatio(Math.min(devicePixelRatio, 2))`, `outputColorSpace = SRGBColorSpace`,
   `toneMapping = ACESFilmicToneMapping`, `shadowMap.type = PCFSoftShadowMap`.
-- Физика — фиксированным шагом: `world.step(1/60, dt, 3)`; `dt` ограничивай `Math.min(dt, 0.1)`.
+- Физика — фиксированным шагом: `world.fixedStep(1/60, dt)` или `world.step(1/60, dt, 3)`; `dt` ограничивай `Math.min(dt, 0.1)`.
 - Каждый объект: одна функция-фабрика, возвращающая `{ mesh, body }`; синхронизация в одном месте.
 - Тени: `castShadow`/`receiveShadow` только где видно; у направленного света подгони `shadow.camera` под арену.
 - Производительность: ≤ ~200 динамических тел, `InstancedMesh` для повторов, переиспользуй
@@ -46,6 +46,8 @@ description: Создаёт браузерные 3D-игры с физикой �
 - Управление работает и без pointer lock (клик по canvas — захват; Esc — пауза).
 - Мобильные: если `matchMedia('(pointer: coarse)')` — показать простые экранные кнопки.
 - Никаких бесконечных `while`, никакого `alert()`.
+- Оверлеи прячь через `el.hidden` и обязательно добавь `[hidden]{display:none!important}` — иначе `display:grid/flex` перебьёт атрибут.
+- Готовый пример: `games/forest-drive/index.html` (гонка на `RaycastVehicle`, трасса-сплайн, чекпоинты, мини-карта, звук мотора, сенсорные кнопки).
 
 ## Быстрые рецепты по жанрам
 
