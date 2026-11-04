@@ -123,7 +123,7 @@ button{font-family:var(--font);cursor:pointer;border:0;color:#fff}
 #scope::before{left:50%;top:18vh;bottom:18vh;width:1px}
 #scope::after{top:50%;left:calc(50% - 32vh);right:calc(50% - 32vh);height:1px}
 #vignette{position:absolute;inset:0;opacity:0;background:radial-gradient(ellipse at center,transparent 50%,rgba(220,0,0,.55));transition:opacity .25s}
-#banner{position:absolute;left:50%;top:26%;transform:translate(-50%,-50%);font-size:26px;text-shadow:0 3px 0 rgba(0,0,0,.4);opacity:0;transition:opacity .25s;white-space:nowrap}
+#banner{position:absolute;left:50%;top:37%;transform:translate(-50%,-50%);font-size:26px;text-shadow:0 3px 0 rgba(0,0,0,.4);opacity:0;transition:opacity .25s;white-space:nowrap}
 #banner.on{opacity:1}
 #dead{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);text-align:center;display:none;font-size:30px;text-shadow:0 3px 0 rgba(0,0,0,.4)}
 #dead small{display:block;font-size:14px;opacity:.85}
@@ -184,3 +184,16 @@ body.touch #btnCar{bottom:24%}
   .shop-panel{width:100%}
   #menu{align-items:flex-end}
 }
+
+/* boss bar */
+#bossbar{position:absolute;top:calc(max(8px,env(safe-area-inset-top)) + 64px);left:50%;transform:translateX(-50%);width:min(420px,56vw);display:none;text-align:center;font-size:13px;text-shadow:0 2px 0 rgba(0,0,0,.5)}
+#bossbar div{height:12px;border-radius:7px;background:rgba(0,0,0,.55);overflow:hidden;margin-top:3px;border:2px solid rgba(255,255,255,.35)}
+#bossFill{display:block;height:100%;width:100%;background:linear-gradient(#ff6b6b,#c42727)}
+/* story cutscene */
+#cutText{position:absolute;left:50%;bottom:14%;transform:translateX(-50%);width:max-content;max-width:min(720px,88vw);text-align:center;font-size:clamp(15px,2.6vw,20px);line-height:1.35;background:rgba(0,0,0,.6);padding:10px 18px;border-radius:14px;display:none}
+#btnSkip{position:absolute;right:max(16px,env(safe-area-inset-right));top:calc(9vh + 10px);pointer-events:auto;display:none}
+body.cut #cutText,body.cut #btnSkip{display:block}
+body.cut #touch,body.cut .topbar,body.cut .bottom-left,body.cut .ammo-box,body.cut #minimap,body.cut #cross,body.cut #killfeed,body.cut #fps,body.cut #btnPause,body.cut #bossbar,body.cut #btnCar,body.cut #keysHint,body.cut #banner{display:none!important}
+body.cut #hud::before,body.cut #hud::after{content:'';position:absolute;left:0;right:0;height:9vh;background:#000}
+body.cut #hud::before{top:0}body.cut #hud::after{bottom:0}
+.pickers{flex-wrap:wrap}.pickers .pick{min-width:96px}

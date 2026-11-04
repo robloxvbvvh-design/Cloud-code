@@ -29,6 +29,7 @@
       <button class="pick" id="selMode"><small>Режим ▸</small><b></b></button>
       <button class="pick" id="selMap"><small>Карта ▸</small><b></b></button>
       <button class="pick" id="selDiff"><small>Боты ▸</small><b></b></button>
+      <button class="pick" id="selBoss" hidden><small>Босс ▸</small><b></b></button>
     </div>
     <div class="label" id="modeDesc"></div>
     <div class="stats" id="statsLine"></div>
@@ -77,6 +78,7 @@
     </div>
     <div class="score red"><b id="sRed">0</b></div>
   </div>
+  <div id="bossbar"><span id="bossName"></span><div><i id="bossFill"></i></div></div>
   <canvas id="minimap" width="120" height="120"></canvas>
   <div id="killfeed"></div>
   <div id="fps"></div>
@@ -86,6 +88,8 @@
   <div id="scope"></div>
   <div id="vignette"></div>
   <div id="banner"></div>
+  <div id="cutText"></div>
+  <button class="btn gray small" id="btnSkip">ПРОПУСТИТЬ ▸▸</button>
   <div id="dead"><div>ВАС ОЩИПАЛИ!</div><small id="deadBy"></small><b id="deadT">3</b></div>
   <div class="bottom-left">
     <div class="bar armor"><div id="arFill"></div></div>
