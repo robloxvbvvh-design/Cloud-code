@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#4aa8ff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Пернатый Отряд</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<!-- ============ MAIN MENU ============ -->
+<div id="menu" class="screen">
+  <div class="menu-left">
+    <div class="logo">ПЕРНАТЫЙ<br><span>ОТРЯД</span></div>
+    <div class="coins"><i class="coin"></i><b class="coinVal">0</b></div>
+    <button id="btnPlay" class="btn big yellow">ИГРАТЬ</button>
+    <div class="row">
+      <button id="btnShop" class="btn blue">МАГАЗИН</button>
+      <button id="btnSettings" class="btn gray">НАСТРОЙКИ</button>
+    </div>
+    <div class="label">Карта · режим «Захват точки» 5×5</div>
+    <div class="row maps" id="mapRow"></div>
+    <div class="stats" id="statsLine"></div>
+  </div>
+</div>
+
+<!-- ============ SHOP ============ -->
+<div id="shop" class="screen hidden">
+  <div class="shop-panel">
+    <div class="shop-head">
+      <button class="btn gray small" id="shopBack">← НАЗАД</button>
+      <div class="title">МАГАЗИН</div>
+      <div class="coins"><i class="coin"></i><b class="coinVal">0</b></div>
+    </div>
+    <div class="tabs" id="shopTabs"></div>
+    <div class="grid" id="shopGrid"></div>
+    <div class="detail" id="shopDetail"></div>
+  </div>
+</div>
+
+<!-- ============ SETTINGS ============ -->
+<div id="settings" class="screen hidden">
+  <div class="panel">
+    <div class="title">НАСТРОЙКИ</div>
+    <div class="set-row"><span>Графика</span>
+      <div class="seg" id="qualSeg">
+        <button data-q="low">Низкая</button><button data-q="med">Средняя</button><button data-q="high">Высокая</button>
+      </div>
+    </div>
+    <div class="set-row"><span>Чувствительность</span><input type="range" id="sens" min="0.3" max="2.5" step="0.05"><b id="sensVal"></b></div>
+    <div class="set-row"><span>Показывать FPS</span><button class="toggle" id="tFps"></button></div>
+    <div class="set-row"><span>Звук</span><button class="toggle" id="tSound"></button></div>
+    <div class="set-row"><span>Прогресс</span><button class="btn red small" id="btnReset">СБРОСИТЬ</button></div>
+    <button class="btn yellow" id="setBack">ГОТОВО</button>
+  </div>
+</div>
+
+<!-- ============ HUD ============ -->
+<div id="hud" class="hidden">
+  <div class="topbar">
+    <div class="score blue"><b id="sBlue">0</b></div>
+    <div class="mid">
+      <div id="timer">5:00</div>
+      <div class="capbar"><div id="capFill"></div><div class="capmark"></div></div>
+      <div id="capText">Точка свободна</div>
+    </div>
+    <div class="score red"><b id="sRed">0</b></div>
+  </div>
+  <canvas id="minimap" width="120" height="120"></canvas>
+  <div id="killfeed"></div>
+  <div id="fps"></div>
+  <button id="btnPause" class="hudbtn">❚❚</button>
+  <div id="cross"><i></i><i></i><i></i><i></i></div>
+  <div id="hitmark"></div>
+  <div id="scope"></div>
+  <div id="vignette"></div>
+  <div id="banner"></div>
+  <div id="dead"><div>ВАС ОЩИПАЛИ!</div><small id="deadBy"></small><b id="deadT">3</b></div>
+  <div class="bottom-left">
+    <div class="bar armor"><div id="arFill"></div></div>
+    <div class="bar hp"><div id="hpFill"></div><span id="hpText">100</span></div>
+  </div>
+  <div class="ammo-box">
+    <div id="wName">Пистолет</div>
+    <div><b id="ammo">12</b><span id="ammoMax">/12</span></div>
+    <div id="nades">● ●</div>
+  </div>
+  <!-- touch controls -->
+  <div id="touch">
+    <div id="joyZone"><div id="joyBase"><div id="joyKnob"></div></div></div>
+    <div id="lookZone"></div>
+    <button class="tbtn" id="tFire">🔫</button>
+    <button class="tbtn s" id="tJump">⤒</button>
+    <button class="tbtn s" id="tReload">R</button>
+    <button class="tbtn s" id="tAim">◎</button>
+    <button class="tbtn s" id="tNade">💣</button>
+    <button class="tbtn s" id="tSwap">⇄</button>
+  </div>
+  <button class="btn yellow small" id="btnCar">СЕСТЬ [E]</button>
+  <div id="keysHint">WASD — ходьба · Мышь — прицел · ЛКМ — огонь · ПКМ — прицелиться · Пробел — прыжок · R — перезарядка · 1/2/Q — оружие · G — граната · E — машина · Esc — пауза</div>
+</div>
+
+<!-- ============ PAUSE ============ -->
+<div id="pause" class="screen hidden dim">
+  <div class="panel">
+    <div class="title">ПАУЗА</div>
+    <button class="btn yellow" id="btnResume">ПРОДОЛЖИТЬ</button>
+    <button class="btn gray" id="btnPauseSettings">НАСТРОЙКИ</button>
+    <button class="btn red" id="btnQuit">ВЫЙТИ В МЕНЮ</button>
+  </div>
+</div>
+
+<!-- ============ END ============ -->
+<div id="end" class="screen hidden dim">
+  <div class="panel">
+    <div class="title" id="endTitle">ПОБЕДА!</div>
+    <div class="endscore"><b class="blue" id="eBlue">0</b> : <b class="red" id="eRed">0</b></div>
+    <div id="endStats"></div>
+    <div class="coins big"><i class="coin"></i><b id="endCoins">+0</b></div>
+    <div class="row">
+      <button class="btn yellow" id="btnAgain">ЕЩЁ РАЗ</button>
+      <button class="btn gray" id="btnToMenu">В МЕНЮ</button>
+    </div>
+  </div>
+</div>
+
+<div id="rotate" class="hidden"><div>↻</div>Поверните телефон горизонтально</div>
+<div id="loading">Загрузка…</div>
+
+<script src="lib/three.min.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
