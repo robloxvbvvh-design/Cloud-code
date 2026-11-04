@@ -29,8 +29,8 @@ const WEAPONS = {
   sniper:     { name: 'Снайперка',       slot: 1, dmg: 100, rate: 1.15, spread: .05, mag: 5,  reload: 2.5, price: 1800, zoom: 3.2, range: 220, heavy: 1 },
   lmg:        { name: 'Пулемёт',         slot: 1, dmg: 17, rate: .085, spread: .035, mag: 80, reload: 3.4, price: 2600, slow: .8 },
   minigun:    { name: 'Миниган',         slot: 1, dmg: 11, rate: .045, spread: .045, mag: 150, reload: 3.6, price: 3200, slow: .72 },
-  railgun:    { name: 'Рельсотрон',      slot: 1, dmg: 120, rate: 1.4, spread: .002, mag: 3,  reload: 2.6, price: 3500, pierce: 1, range: 250, zoom: 2.2, heavy: 1, slow: .9 },
-  rocket:     { name: 'Базука',          slot: 1, dmg: 130, rate: 1.3, spread: 0, mag: 1,     reload: 2.3, price: 3800, rocket: 1, splash: 4.5, slow: .85 },
+  storm:      { name: 'Автодробовик «Шторм»', slot: 1, dmg: 14, rate: .22, spread: .07, mag: 12, reload: 2.4, price: 3500, pellets: 8, heavy: 1, range: 32 },
+  thunder:    { name: 'Громобой',        slot: 1, dmg: 42, rate: .12, spread: .006, mag: 40,  reload: 1.8, price: 5000, chain: 3, range: 160 },
   crossbow:   { name: 'Арбалет',         slot: 1, dmg: 90, rate: .95, spread: .004, mag: 1,   reload: 1.2, price: 1500, range: 160, heavy: 1 },
   flamer:     { name: 'Огнемёт',         slot: 1, dmg: 6, rate: .05, spread: .12, mag: 120,   reload: 3, price: 2800, pellets: 2, range: 10, flame: 1, slow: .85 },
   laser:      { name: 'Лазерный бластер', slot: 1, dmg: 30, rate: .085, spread: .004, mag: 45, reload: 1.5, price: 0, range: 200, laser: 1, secret: 1 },
@@ -90,7 +90,7 @@ const MODES = {
 const MON_MODES = new Set(['escape', 'story', 'boss', 'horde']);
 const SNIPER_GOAL = 20, EGG_GOAL = 25;
 const GG = ['minigun', 'lmg', 'ak', 'rifle', 'shotgun', 'dbarrel', 'smg', 'dmr', 'sniper', 'crossbow', 'deagle', 'revolver', 'pistol', 'machete'];
-const CRATE_TIERS = ['shotgun', 'rifle', 'ak', 'dbarrel', 'dmr', 'lmg', 'flamer', 'crossbow', 'minigun', 'sniper', 'railgun', 'rocket'];
+const CRATE_TIERS = ['shotgun', 'rifle', 'ak', 'dbarrel', 'dmr', 'lmg', 'flamer', 'crossbow', 'minigun', 'sniper', 'storm', 'thunder'];
 const DIFFS = {
   easy:   { name: 'Лёгкие',  dmg: .35, spread: .09,  react: .9,  turn: 3.5, mspd: .8,  mdmg: .55 },
   normal: { name: 'Обычные', dmg: .65, spread: .035, react: .45, turn: 6,   mspd: 1,   mdmg: 1 },
@@ -127,7 +127,7 @@ function loadSave() {
 }
 let S = loadSave();
 // the grenade launcher was removed: refund it and fall back to the SMG
-if (S.owned.glauncher) { delete S.owned.glauncher; S.coins += 3500; }
+for (const [id, price] of [['glauncher', 3500], ['railgun', 3500], ['rocket', 3800]]) if (S.owned[id]) { delete S.owned[id]; S.coins += price; }
 if (!WEAPONS[S.eq.prim]) S.eq.prim = 'smg';
 if (!WEAPONS[S.eq.sec]) S.eq.sec = 'pistol';
 function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) { /* ignore */ } }
@@ -436,12 +436,12 @@ function buildGun(id) {
     case 'laser': P(G.box, 0xeeeeee, .1, .15, .55, 0, 0, .15, g); P(G.box, 0xbdbdbd, .08, .16, .2, 0, -.12, .02, g);
       { const gl = new T.Mesh(G.box, new T.MeshBasicMaterial({ color: 0x5ef2ff })); gl.scale.set(.105, .03, .5); gl.position.set(0, .05, .15); g.add(gl);
         for (let i = 0; i < 3; i++) { const r = new T.Mesh(G.cylLo, gl.material); r.scale.set(.06, .03, .06); r.rotation.x = Math.PI / 2; r.position.set(0, 0, .48 + i * .08); g.add(r); } } muz = .72; break;
-    case 'railgun': P(G.box, 0x2b2f36, .12, .16, .55, 0, 0, .1, g); P(G.box, D2, .09, .18, .28, 0, -.03, -.28, g);
-      for (const s of [-1, 1]) P(G.box, 0x9aa0a6, .025, .05, .75, s * .045, .02, .62, g);
-      { const gm = new T.MeshBasicMaterial({ color: 0x7c4dff }); for (let i = 0; i < 4; i++) { const r = new T.Mesh(G.cylLo, gm); r.scale.set(.085, .035, .085); r.rotation.x = Math.PI / 2; r.position.set(0, .02, .3 + i * .14); g.add(r); } }
-      P(G.box, 0x111111, .05, .07, .2, 0, .13, .05, g); muz = 1; break;
-    case 'rocket': P(G.cyl, 0x4f6b3a, .11, 1.1, .11, 0, .05, .18, g, Math.PI / 2); P(G.cyl, 0x3b5029, .14, .15, .14, 0, .05, .72, g, Math.PI / 2);
-      P(G.cone8, 0x6c7d4b, .1, .22, .1, 0, .05, .85, g, Math.PI / 2); P(G.box, D, .06, .16, .08, 0, -.11, .1, g); P(G.box, D, .05, .08, .12, 0, .19, .2, g); muz = .9; break;
+    case 'storm': P(G.box, 0x2d2f33, .12, .15, .6, 0, 0, .15, g); P(G.cyl, 0x8a1c1c, .13, .12, .13, 0, -.14, .12, g, 0, 0, Math.PI / 2);
+      P(G.cylLo, D, .045, .45, .045, 0, .03, .6, g, Math.PI / 2); P(G.box, 0x55595f, .1, .08, .3, 0, -.06, .5, g); P(G.box, D2, .08, .16, .26, 0, -.03, -.26, g); muz = .84; break;
+    case 'thunder': P(G.box, 0x2b2f36, .12, .16, .5, 0, 0, .1, g); P(G.box, D2, .09, .18, .26, 0, -.03, -.26, g);
+      for (let i = 0; i < 4; i++) P(G.cyl, 0xb87333, .085, .05, .085, 0, .02, .36 + i * .1, g, Math.PI / 2);
+      P(G.cylLo, D, .03, .5, .03, 0, .02, .55, g, Math.PI / 2);
+      { const tip = new T.Mesh(G.sphLo, new T.MeshBasicMaterial({ color: 0xfff59d })); tip.scale.setScalar(.07); tip.position.set(0, .02, .82); g.add(tip); } muz = .86; break;
   }
   g.userData.muz = muz;
   return g;
@@ -1151,18 +1151,37 @@ function fire(a, origin, dir) {
       }
       const r = traceShot(origin, _sd, w.range || 120, a);
       _end.copy(origin).addScaledVector(_sd, r.t);
-      if (w.flame) flameFx(_mz, _sd); else if (i < 3) tracer(_mz, _end, w.laser ? 0x5ef2ff : 0);
+      if (w.flame) flameFx(_mz, _sd); else if (i < 3) tracer(_mz, _end, w.laser ? 0x5ef2ff : w.chain ? 0xfff59d : 0);
       if (r.actor) {
         let dmg = w.dmg * (r.head ? 1.7 : 1);
         if (w.range && r.t > w.range * .5) dmg *= .6;
         if (!a.isPlayer && r.actor.isPlayer) dmg *= DIFFS[S.diff].dmg;
         damage(r.actor, dmg, a, ws.id, r.head);
+        if (w.chain) chainZap(a, r.actor, w, ws.id);
       } else if (r.t < (w.range || 120)) burst(_end.x, _end.y + .05, _end.z, world.theme.ground2, 2, 2.5, .3, .1);
     }
   }
   sfx(w.flame ? 'flame' : w.heavy || w.rocket ? 'heavy' : 'shot', a.isPlayer ? null : a.pos);
   if (a.isPlayer) { a.pitch = Math.min(1.2, a.pitch + (w.heavy ? .03 : .008)); game.shake = Math.max(game.shake, w.heavy ? .12 : .04); }
   if (ws.ammo <= 0) startReload(a);
+}
+/** Громобой: lightning jumps from the hit enemy to the nearest others. */
+function chainZap(a, first, w, wid) {
+  const hit = new Set([first]); let from = first;
+  for (let i = 0; i < w.chain; i++) {
+    let best = null, bd = 9;
+    for (const e of game.actors) {
+      if (!e.alive || e.team === a.team || hit.has(e)) continue;
+      const d = e.pos.distanceTo(from.pos); if (d < bd) { bd = d; best = e; }
+    }
+    if (!best) break;
+    hit.add(best);
+    _v1.set(from.pos.x, from.pos.y + 1, from.pos.z); _v2.set(best.pos.x, best.pos.y + 1, best.pos.z);
+    tracer(_v1, _v2, 0x8fd3ff); tracer(_v1, _v2, 0xfff59d);
+    burst(_v2.x, _v2.y, _v2.z, [0x8fd3ff, 0xfff59d], 4, 3, .3, .12);
+    damage(best, w.dmg * .7 * (!a.isPlayer && best.isPlayer ? DIFFS[S.diff].dmg : 1), a, wid, false);
+    from = best;
+  }
 }
 function throwNade(a, dir) {
   if (!a.alive || a.car || a.grenades <= 0 || a.cd > 0) return;
@@ -1179,7 +1198,7 @@ function damage(t, dmg, src, wid, head) {
   if (t.bot && src && src.team !== t.team && (!t.bot.target || Math.random() < .5)) { t.bot.target = src; t.bot.react = Math.min(t.bot.react, .2); }
   if (t.hp <= 0) kill(t, src, wid, head);
 }
-const WICON = { pistol: '🔫', revolver: '🔫', smg: '🔫', rifle: '🔫', shotgun: '🔫', sniper: '🎯', minigun: '🔫', rocket: '🚀', boom: '💥', car: '🚙', claw: '🦴', machete: '🔪', axe: '🪓', crossbow: '🏹', flamer: '🔥', laser: '⚡', railgun: '💠', boss: '👹' };
+const WICON = { pistol: '🔫', revolver: '🔫', smg: '🔫', rifle: '🔫', shotgun: '🔫', sniper: '🎯', minigun: '🔫', rocket: '🚀', boom: '💥', car: '🚙', claw: '🦴', machete: '🔪', axe: '🪓', crossbow: '🏹', flamer: '🔥', laser: '⚡', thunder: '🌩️', storm: '🌪️', boss: '👹' };
 function kill(t, src, wid, head) {
   t.alive = false; t.hp = 0; t.deaths++; t.respawn = 4; t.killedBy = src && src !== t ? src.name : '';
   if (t.car) exitCar(t);
