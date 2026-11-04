@@ -1091,7 +1091,7 @@ function clearMatch() {
 function startMatch() {
   initAudio();
   if (isTouch) {
-    try { const de = document.documentElement; (de.requestFullscreen || de.webkitRequestFullscreen || (() => {})).call(de); } catch (e) { /* ignore */ }
+    try { const de = document.documentElement; const r = (de.requestFullscreen || de.webkitRequestFullscreen || (() => {})).call(de); if (r && r.catch) r.catch(() => {}); } catch (e) { /* ignore */ }
     try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {}); } catch (e) { /* ignore */ }
   }
   clearMatch();
@@ -1161,7 +1161,7 @@ function look(dx, dy, k) {
   a.yaw -= dx * k * S.sens * z; a.pitch = clamp(a.pitch - dy * k * S.sens * z, -1.25, 1.25);
   game.lastLook = game.time;
 }
-function lockPointer() { if (!isTouch && canvas.requestPointerLock) try { canvas.requestPointerLock(); } catch (e) { /* ignore */ } }
+function lockPointer() { if (!isTouch && canvas.requestPointerLock) try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) { /* ignore */ } }
 function unlockPointer() { if (document.pointerLockElement) document.exitPointerLock(); }
 document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement && game.state === 'play' && !isTouch) pause(); });
 canvas.addEventListener('click', () => { if (game.state === 'play' && !document.pointerLockElement) lockPointer(); });
@@ -1396,7 +1396,11 @@ document.querySelectorAll('#qualSeg button').forEach((b) => (b.onclick = () => {
 $('sens').oninput = (e) => { S.sens = +e.target.value; save(); renderSettings(); };
 $('tFps').onclick = () => { S.fps = !S.fps; save(); renderSettings(); };
 $('tSound').onclick = () => { S.sound = !S.sound; save(); renderSettings(); };
-$('btnReset').onclick = () => { if (confirm('Сбросить монеты и покупки?')) { S = clone(DEFAULT); save(); renderSettings(); refreshMenu(); } };
+$('btnReset').onclick = () => {
+  const b = $('btnReset');
+  if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'ТОЧНО? НАЖМИ ЕЩЁ'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'СБРОСИТЬ'; }, 3000); return; }
+  delete b.dataset.armed; b.textContent = 'СБРОСИТЬ'; S = clone(DEFAULT); save(); renderSettings(); refreshMenu();
+};
 $('setBack').onclick = () => { $('settings').classList.add('hidden'); if (settingsFrom === 'pause') $('pause').classList.remove('hidden'); };
 
 $('btnPlay').onclick = () => { initAudio(); startMatch(); };
