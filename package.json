@@ -1,0 +1,9 @@
+{
+  "name": "tapvpn",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VPN-приложение: пробный период, фейковая оплата, тапалка минут и выдача проверенных ключей",
+  "main": "server/index.js",
+  "scripts": { "start": "node server/index.js" },
+  "engines": { "node": ">=18" }
+}

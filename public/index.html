@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0b0f0d">
+  <title>TapVPN</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main id="app">
+    <!-- Главная -->
+    <section class="page active" data-page="home">
+      <header class="top"><h1>TapVPN</h1><span id="statusBadge" class="badge">…</span></header>
+      <div class="card hero">
+        <div class="muted">Осталось</div>
+        <div id="timeLeft" class="big">—</div>
+        <div id="subUntil" class="muted small"></div>
+        <button class="btn primary" id="buyBtn">Купить подписку</button>
+      </div>
+      <div class="row-title"><h2>Серверы</h2><span id="serversMeta" class="muted small"></span></div>
+      <ul id="servers" class="list"></ul>
+    </section>
+
+    <!-- Подключиться -->
+    <section class="page" data-page="connect">
+      <header class="top"><h1>Подключиться</h1></header>
+      <div class="card" id="keyCard">
+        <div class="muted small">Ваш сервер</div>
+        <div id="keyServer" class="key-server">Ключ ещё не выдан</div>
+        <button class="btn primary" id="newKeyBtn">Получить ключ</button>
+      </div>
+      <p class="muted small">Выберите приложение — подписка добавится автоматически. Если приложение не открылось, ссылка будет скопирована.</p>
+      <div class="apps">
+        <button class="app" data-app="happ"><img src="/icons/happ.png" alt=""><span>Happ</span></button>
+        <button class="app" data-app="incy"><img src="/icons/incy.jpg" alt=""><span>INCY</span></button>
+        <button class="app" data-app="v2raytun"><img src="/icons/v2raytun.png" alt=""><span>v2RayTun</span></button>
+        <button class="app" data-app="hiddify"><img src="/icons/hiddify.png" alt=""><span>Hiddify</span></button>
+      </div>
+      <div class="card">
+        <div class="muted small">Ссылка-подписка</div>
+        <code id="subUrl" class="code"></code>
+        <div class="btns"><button class="btn" id="copySub">Скопировать подписку</button><button class="btn" id="copyKey">Скопировать ключ</button></div>
+      </div>
+    </section>
+
+    <!-- Тапалка -->
+    <section class="page" data-page="tap">
+      <header class="top"><h1>Натапать</h1></header>
+      <div class="tap-stats">
+        <div><div id="minutes" class="big">0</div><div class="muted small">минут накоплено</div></div>
+      </div>
+      <div class="progress"><div id="progressBar"></div></div>
+      <div id="progressText" class="muted small center">0 / 1440 до 1 дня</div>
+      <button id="tapBtn" class="tap-btn"><span id="tapEmoji">🛡️</span></button>
+      <div class="muted small center">1 клик = 1 минута VPN</div>
+      <button class="btn primary" id="withdrawBtn">Вывести в подписку</button>
+      <div class="row-title"><h2>Скины</h2><span class="muted small">не влияют на доход</span></div>
+      <div id="skins" class="skins"></div>
+    </section>
+
+    <!-- Кабинет -->
+    <section class="page" data-page="profile">
+      <header class="top"><h1>Кабинет</h1></header>
+      <div class="card">
+        <div class="kv"><span>ID</span><b id="pId"></b></div>
+        <div class="kv"><span>Статус</span><b id="pStatus"></b></div>
+        <div class="kv"><span>Подписка до</span><b id="pUntil"></b></div>
+        <div class="kv"><span>Всего кликов</span><b id="pTaps"></b></div>
+        <div class="kv"><span>Сервер</span><b id="pServer"></b></div>
+      </div>
+      <button class="btn primary" id="goConnect">Подключиться</button>
+      <div class="row-title"><h2>Платежи</h2></div>
+      <ul id="payments" class="list"></ul>
+    </section>
+  </main>
+
+  <nav class="tabs">
+    <button data-tab="home" class="active"><span>🏠</span>Главная</button>
+    <button data-tab="connect"><span>⚡</span>Подключиться</button>
+    <button data-tab="tap"><span>👆</span>Натапать</button>
+    <button data-tab="profile"><span>👤</span>Кабинет</button>
+  </nav>
+
+  <!-- Пробный период -->
+  <div class="modal" id="trialModal">
+    <div class="sheet">
+      <div class="gift">🎁</div>
+      <h2>3 дня бесплатно</h2>
+      <p class="muted">Пробный период без оплаты. Полный доступ ко всем серверам.</p>
+      <button class="btn primary" id="trialAccept">Начать пробный период</button>
+      <button class="btn ghost" id="trialDecline">Отказаться</button>
+    </div>
+  </div>
+
+  <!-- Оплата (демо) -->
+  <div class="modal" id="payModal">
+    <div class="sheet">
+      <h2>Подписка</h2>
+      <div id="plans" class="plans"></div>
+      <p class="muted small center">Демо-режим: оплата ненастоящая, деньги не списываются.</p>
+      <button class="btn primary" id="payBtn">Оплатить</button>
+      <button class="btn ghost" data-close>Закрыть</button>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
