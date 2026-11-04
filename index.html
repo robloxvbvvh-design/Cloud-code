@@ -25,8 +25,12 @@
       <button id="btnShop" class="btn blue">МАГАЗИН</button>
       <button id="btnSettings" class="btn gray">НАСТРОЙКИ</button>
     </div>
-    <div class="label">Карта · режим «Захват точки» 5×5</div>
-    <div class="row maps" id="mapRow"></div>
+    <div class="row pickers">
+      <button class="pick" id="selMode"><small>Режим ▸</small><b></b></button>
+      <button class="pick" id="selMap"><small>Карта ▸</small><b></b></button>
+      <button class="pick" id="selDiff"><small>Боты ▸</small><b></b></button>
+    </div>
+    <div class="label" id="modeDesc"></div>
     <div class="stats" id="statsLine"></div>
   </div>
 </div>
@@ -68,7 +72,7 @@
     <div class="score blue"><b id="sBlue">0</b></div>
     <div class="mid">
       <div id="timer">5:00</div>
-      <div class="capbar"><div id="capFill"></div><div class="capmark"></div></div>
+      <div class="capbar" id="capbar"><div id="capFill"></div><div class="capmark"></div></div>
       <div id="capText">Точка свободна</div>
     </div>
     <div class="score red"><b id="sRed">0</b></div>

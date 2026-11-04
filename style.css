@@ -39,6 +39,9 @@ button{font-family:var(--font);cursor:pointer;border:0;color:#fff}
 .logo{font-size:clamp(30px,7vh,54px);line-height:.95;color:#fff;text-shadow:0 4px 0 #1d5fae,0 8px 18px rgba(0,0,0,.3);transform:rotate(-2deg)}
 .logo span{color:var(--yellow);text-shadow:0 4px 0 #b06d00,0 8px 18px rgba(0,0,0,.3)}
 .menu-left .row .btn{flex:1}
+.pick{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:7px 10px;border-radius:12px;background:rgba(10,20,40,.45);border:2px solid rgba(255,255,255,.18);text-align:left}
+.pick small{font-size:10px;opacity:.75}.pick b{font-size:14px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.pick:active{transform:scale(.97)}
 .maps button{flex:1;padding:8px 6px;border-radius:12px;background:rgba(255,255,255,.2);font-size:13px;border:3px solid transparent;min-height:40px}
 .maps button.on{border-color:var(--yellow);background:rgba(0,0,0,.35)}
 .stats{font-size:12px;opacity:.85;text-shadow:0 1px 2px rgba(0,0,0,.5)}
