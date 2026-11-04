@@ -29,7 +29,6 @@ const WEAPONS = {
   sniper:     { name: 'Снайперка',       slot: 1, dmg: 100, rate: 1.15, spread: .05, mag: 5,  reload: 2.5, price: 1800, zoom: 3.2, range: 220, heavy: 1 },
   lmg:        { name: 'Пулемёт',         slot: 1, dmg: 17, rate: .085, spread: .035, mag: 80, reload: 3.4, price: 2600, slow: .8 },
   minigun:    { name: 'Миниган',         slot: 1, dmg: 11, rate: .045, spread: .045, mag: 150, reload: 3.6, price: 3200, slow: .72 },
-  glauncher:  { name: 'Гранатомёт',      slot: 1, dmg: 100, rate: .9, spread: 0, mag: 4,     reload: 2.8, price: 3500, lob: 1, splash: 4.5, slow: .85 },
   rocket:     { name: 'Базука',          slot: 1, dmg: 130, rate: 1.3, spread: 0, mag: 1,     reload: 2.3, price: 3800, rocket: 1, splash: 4.5, slow: .85 },
   crossbow:   { name: 'Арбалет',         slot: 1, dmg: 90, rate: .95, spread: .004, mag: 1,   reload: 1.2, price: 1500, range: 160, heavy: 1 },
   flamer:     { name: 'Огнемёт',         slot: 1, dmg: 6, rate: .05, spread: .12, mag: 120,   reload: 3, price: 2800, pellets: 2, range: 10, flame: 1, slow: .85 },
@@ -90,7 +89,7 @@ const MODES = {
 const MON_MODES = new Set(['escape', 'story', 'boss', 'horde']);
 const SNIPER_GOAL = 20, EGG_GOAL = 25;
 const GG = ['minigun', 'lmg', 'ak', 'rifle', 'shotgun', 'dbarrel', 'smg', 'dmr', 'sniper', 'crossbow', 'deagle', 'revolver', 'pistol', 'machete'];
-const CRATE_TIERS = ['shotgun', 'rifle', 'ak', 'dbarrel', 'dmr', 'lmg', 'flamer', 'crossbow', 'minigun', 'glauncher', 'sniper', 'rocket'];
+const CRATE_TIERS = ['shotgun', 'rifle', 'ak', 'dbarrel', 'dmr', 'lmg', 'flamer', 'crossbow', 'minigun', 'sniper', 'rocket'];
 const DIFFS = {
   easy:   { name: 'Лёгкие',  dmg: .35, spread: .09,  react: .9,  turn: 3.5, mspd: .8,  mdmg: .55 },
   normal: { name: 'Обычные', dmg: .65, spread: .035, react: .45, turn: 6,   mspd: 1,   mdmg: 1 },
@@ -126,6 +125,10 @@ function loadSave() {
   return clone(DEFAULT);
 }
 let S = loadSave();
+// the grenade launcher was removed: refund it and fall back to the SMG
+if (S.owned.glauncher) { delete S.owned.glauncher; S.coins += 3500; }
+if (!WEAPONS[S.eq.prim]) S.eq.prim = 'smg';
+if (!WEAPONS[S.eq.sec]) S.eq.sec = 'pistol';
 function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) { /* ignore */ } }
 
 /* =====================================================================
@@ -423,7 +426,6 @@ function buildGun(id) {
     case 'lmg': P(G.box, D, .12, .16, .7, 0, 0, .2, g); P(G.box, 0x55663a, .16, .18, .2, .02, -.15, .1, g); barrel(.035, .4, .7); P(G.box, D2, .08, .17, .26, 0, -.03, -.25, g);
       for (const s of [-1, 1]) P(G.box, D2, .02, .3, .02, s * .06, -.17, .62, g, 0, 0, s * .3); muz = .9; break;
     case 'dbarrel': for (const s of [-1, 1]) P(G.cylLo, D, .04, .7, .04, s * .045, .03, .35, g, Math.PI / 2); P(G.box, W, .13, .1, .3, 0, -.04, .32, g); P(G.box, W, .1, .16, .34, 0, -.04, -.18, g, -.1); muz = .72; break;
-    case 'glauncher': P(G.cyl, 0x55663a, .09, .5, .09, 0, .03, .25, g, Math.PI / 2); P(G.cyl, 0x3b4628, .14, .2, .14, 0, -.02, 0, g, Math.PI / 2); P(G.box, D, .06, .16, .08, 0, -.15, -.02, g); P(G.box, D2, .07, .12, .22, 0, -.02, -.2, g); muz = .52; break;
     case 'machete': P(G.box, 0x3a2a1a, .05, .1, .2, 0, 0, 0, g); P(G.box, 0xc9ced6, .02, .11, .62, 0, .02, .4, g); P(G.box, 0x9aa0a6, .1, .03, .04, 0, 0, .1, g); muz = .7; break;
     case 'axe': P(G.cylLo, W, .03, .95, .03, 0, 0, .35, g, Math.PI / 2); P(G.box, 0x9aa0a6, .03, .32, .24, 0, .12, .76, g); P(G.box, 0xc9ced6, .035, .34, .04, 0, .12, .88, g); muz = .9; break;
     case 'crossbow': P(G.box, W, .08, .1, .6, 0, 0, .15, g); P(G.box, D, .9, .05, .07, 0, .03, .42, g); P(G.box, 0xeeeeee, .86, .012, .012, 0, .04, .3, g);
@@ -1157,7 +1159,7 @@ function damage(t, dmg, src, wid, head) {
   if (t.bot && src && src.team !== t.team && (!t.bot.target || Math.random() < .5)) { t.bot.target = src; t.bot.react = Math.min(t.bot.react, .2); }
   if (t.hp <= 0) kill(t, src, wid, head);
 }
-const WICON = { pistol: '🔫', revolver: '🔫', smg: '🔫', rifle: '🔫', shotgun: '🔫', sniper: '🎯', minigun: '🔫', rocket: '🚀', boom: '💥', car: '🚙', claw: '🦴', glauncher: '💥', machete: '🔪', axe: '🪓', crossbow: '🏹', flamer: '🔥', laser: '⚡', boss: '👹' };
+const WICON = { pistol: '🔫', revolver: '🔫', smg: '🔫', rifle: '🔫', shotgun: '🔫', sniper: '🎯', minigun: '🔫', rocket: '🚀', boom: '💥', car: '🚙', claw: '🦴', machete: '🔪', axe: '🪓', crossbow: '🏹', flamer: '🔥', laser: '⚡', boss: '👹' };
 function kill(t, src, wid, head) {
   t.alive = false; t.hp = 0; t.deaths++; t.respawn = 4; t.killedBy = src && src !== t ? src.name : '';
   if (t.car) exitCar(t);
