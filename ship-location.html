@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Палуба корвета</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Barlow:wght@400;500&display=swap">
+<style>
+/* Layout: full-bleed 3D stage, name plate top-left, view selector docked at the bottom. */
+:root {
+  --bg: #05060b;
+  --glow: #121a2e;
+  --panel: rgba(14, 18, 28, 0.8);
+  --line: rgba(255, 255, 255, 0.14);
+  --fg: #e9edf6;
+  --muted: #93a0ba;
+  --accent: #4aa8ff;
+  --font-display: "Rajdhani", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "Barlow", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); overflow: hidden; }
+#app { position: relative; height: 100%; overflow: hidden; }
+#stage { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 50%, var(--glow) 0%, var(--bg) 70%); }
+#c { display: block; width: 100%; height: 100%; touch-action: none; outline: none; }
+.top, .dock {
+  position: absolute; left: 0; right: 0; pointer-events: none;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.top { top: 0; padding-top: 14px; }
+.eyebrow { font: 600 12px/1 var(--font-display); letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
+h1 { margin: 6px 0 4px; font: 700 clamp(28px, 8vw, 40px)/1 var(--font-display); letter-spacing: 0.02em; text-transform: uppercase; }
+.note { margin: 0; max-width: 36ch; font-size: 14px; line-height: 1.4; color: var(--muted); }
+.dock { bottom: 0; padding-bottom: 14px; }
+.hint { margin: 0 0 10px; text-align: center; font-size: 12px; color: var(--muted); }
+.tabs { pointer-events: auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; max-width: 520px; margin: 0 auto; }
+.tab {
+  min-height: 52px; padding: 6px 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px;
+  background: var(--panel); color: var(--muted); border: 1px solid var(--line); border-radius: 10px;
+  font: 600 15px/1.1 var(--font-display); letter-spacing: 0.06em; text-transform: uppercase; backdrop-filter: blur(8px);
+}
+.tab small { font: 400 11px/1 var(--font-body); letter-spacing: 0; text-transform: none; opacity: 0.8; }
+.tab[aria-pressed="true"] { color: var(--fg); border-color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); }
+button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+#fail { position: absolute; inset: 0; display: none; place-items: center; padding: 24px; text-align: center; color: var(--muted); }
+</style>
+
+</head><body>
+<main id="app">
+  <div id="stage"><canvas id="c" aria-label="3D-локация, крутите пальцем"></canvas></div>
+  <header class="top">
+    <div class="eyebrow">3D-локация</div>
+    <h1>Палуба корвета</h1>
+    <p class="note">Корабль в разрезе: мостик, главный зал с голостолом, два машинных отсека, грузовой отсек, башни и четыре двигателя.</p>
+  </header>
+  <div class="dock">
+    <p class="hint">Один палец крутит, два пальца приближают и двигают</p>
+    <nav class="tabs" aria-label="Вид">
+      <button class="tab" type="button" data-v="top" aria-pressed="true">Сверху<small>как на плане</small></button>
+      <button class="tab" type="button" data-v="angle" aria-pressed="false">Обзор<small>под углом</small></button>
+      <button class="tab" type="button" data-v="bridge" aria-pressed="false">Мостик<small>изнутри</small></button>
+    </nav>
+  </div>
+  <div id="fail">Не удалось запустить 3D. Откройте страницу в современном браузере с WebGL.</div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function () {
+  "use strict";
+  var PI = Math.PI;
+  var canvas = document.getElementById("c"), stage = document.getElementById("stage");
+  if (!window.THREE) { document.getElementById("fail").style.display = "grid"; return; }
+  var renderer;
+  try { renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true }); }
+  catch (e) { document.getElementById("fail").style.display = "grid"; return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.85;
+
+  /* ---------- plan coordinates: the layout is drawn in reference-image pixels ---------- */
+  var K = 0.069, CX = 295, CZ = 167;
+  function X(px) { return (px - CX) * K; }
+  function Z(py) { return (py - CZ) * K; }
+  var FL = 0.3;            /* floor height */
+  var RIM = 2.0;           /* top of the outer hull ring */
+  var WALL = 1.4;          /* partition height */
+
+  var scene = new THREE.Scene();
+  var ship = new THREE.Group(); scene.add(ship);
+
+  /* ---------- textures drawn on canvas ---------- */
+  function tex(size, draw, rx, ry) {
+    var c = document.createElement("canvas"); c.width = c.height = size;
+    var x = c.getContext("2d"); draw(x, size);
+    var t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry);
+    t.anisotropy = 4; t.encoding = THREE.sRGBEncoding; return t;
+  }
+  var seed = 7; function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+  var floorTex = tex(256, function (x, s) {
+    x.fillStyle = "#6c7078"; x.fillRect(0, 0, s, s);
+    for (var i = 0; i < 900; i++) { x.fillStyle = "rgba(" + (rnd() > 0.5 ? "255,255,255" : "0,0,0") + "," + (rnd() * 0.05) + ")"; x.fillRect(rnd() * s, rnd() * s, 2 + rnd() * 10, 2 + rnd() * 10); }
+    x.strokeStyle = "rgba(40,44,52,0.55)"; x.lineWidth = 3; x.strokeRect(1.5, 1.5, s - 3, s - 3);
+    x.strokeStyle = "rgba(40,44,52,0.25)"; x.lineWidth = 1; x.beginPath(); x.moveTo(s / 2, 0); x.lineTo(s / 2, s); x.moveTo(0, s / 2); x.lineTo(s, s / 2); x.stroke();
+  }, 0.5, 0.5);
+  var hullTex = tex(256, function (x, s) {
+    x.fillStyle = "#979ba3"; x.fillRect(0, 0, s, s);
+    for (var i = 0; i < 14; i++) { x.fillStyle = "rgba(" + (rnd() > 0.5 ? "255,255,255" : "40,44,52") + ",0.10)"; x.fillRect(rnd() * s, rnd() * s, 30 + rnd() * 90, 20 + rnd() * 60); }
+    x.strokeStyle = "rgba(60,64,72,0.7)"; x.lineWidth = 2;
+    for (i = 0; i < 4; i++) { x.strokeRect(rnd() * s * 0.5, rnd() * s * 0.5, 60 + rnd() * 120, 40 + rnd() * 90); }
+    x.fillStyle = "rgba(60,64,72,0.7)";
+    for (i = 0; i < 24; i++) x.fillRect((i % 6) * 42 + 8, Math.floor(i / 6) * 64 + 8, 3, 3);
+  }, 0.22, 0.22);
+  var planetTex = tex(256, function (x, s) {
+    x.fillStyle = "#06070c"; x.fillRect(0, 0, s, s);
+    for (var i = 0; i < 90; i++) { x.fillStyle = "rgba(255,255,255," + (0.2 + rnd() * 0.6) + ")"; x.fillRect(rnd() * s, rnd() * s, 1.5, 1.5); }
+    var g = x.createRadialGradient(s * 0.42, s * 0.4, s * 0.05, s / 2, s / 2, s * 0.3);
+    g.addColorStop(0, "#f09a6a"); g.addColorStop(0.5, "#c44f2c"); g.addColorStop(1, "#4a160c");
+    x.fillStyle = g; x.beginPath(); x.arc(s / 2, s / 2, s * 0.3, 0, PI * 2); x.fill();
+    x.strokeStyle = "rgba(90,25,10,0.5)"; x.lineWidth = 5;
+    for (i = 0; i < 4; i++) { x.beginPath(); x.ellipse(s / 2, s / 2 - 30 + i * 22, s * 0.28, 6, 0, 0, PI); x.stroke(); }
+  }, 1, 1);
+
+  /* ---------- materials ---------- */
+  function mat(c, m, r) { return new THREE.MeshStandardMaterial({ color: c, metalness: m == null ? 0.3 : m, roughness: r == null ? 0.55 : r }); }
+  function glow(c, k) { return new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: k || 1.5, roughness: 0.4 }); }
+  var M = {
+    hull: new THREE.MeshStandardMaterial({ map: hullTex, color: 0xffffff, metalness: 0.35, roughness: 0.55 }),
+    floor: new THREE.MeshStandardMaterial({ map: floorTex, color: 0xffffff, metalness: 0.2, roughness: 0.7 }),
+    wall: mat(0x6f737b, 0.4, 0.5), wallTop: mat(0xa9adb5, 0.4, 0.45), dark: mat(0x23252b, 0.5, 0.45),
+    seat: mat(0x1c6ee0, 0.15, 0.5), steel: mat(0xb9bec7, 0.75, 0.3), crate: mat(0x7a6f58, 0.2, 0.7),
+    blue: glow(0x4aa8ff, 1.6), green: glow(0x3dffa0, 1.4), red: glow(0xff3322, 1.8), white: glow(0xf4f8ff, 1.2), amber: glow(0xffa338, 1.5)
+  };
+
+  /* ---------- helpers ---------- */
+  function grp(parent, x, y, z) { var g = new THREE.Group(); g.position.set(x || 0, y || 0, z || 0); (parent || ship).add(g); return g; }
+  function mk(geo, m, parent, x, y, z) { var o = new THREE.Mesh(geo, m); o.position.set(x || 0, y || 0, z || 0); (parent || ship).add(o); return o; }
+  function box(w, h, d) { return new THREE.BoxGeometry(w, h, d); }
+  function cyl(rt, rb, h, s) { return new THREE.CylinderGeometry(rt, rb, h, s || 20); }
+  /* box between two plan points, standing on y0 */
+  function blk(px1, py1, px2, py2, y0, h, m) {
+    var w = Math.abs(px2 - px1) * K, d = Math.abs(py2 - py1) * K;
+    return mk(box(w, h, d), m, null, X((px1 + px2) / 2), y0 + h / 2, Z((py1 + py2) / 2));
+  }
+  function wallV(px, py1, py2, h) { var hh = h || WALL; blk(px - 2.5, py1, px + 2.5, py2, FL, hh, M.wall); blk(px - 2.5, py1, px + 2.5, py2, FL + hh, 0.06, M.wallTop); }
+  function wallH(py, px1, px2, h) { var hh = h || WALL; blk(px1, py - 2.5, px2, py + 2.5, FL, hh, M.wall); blk(px1, py - 2.5, px2, py + 2.5, FL + hh, 0.06, M.wallTop); }
+  function plt(px, py) { return new THREE.Vector2(X(px), -Z(py)); }
+
+  /* ---------- hull outline: half profiles in plan pixels, mirrored about the centre line ---------- */
+  var outerHalf = [[5, 18], [15, 38], [50, 58], [100, 66], [130, 82], [135, 94], [285, 94], [300, 118], [340, 128], [420, 140], [485, 140], [505, 122], [520, 122]];
+  var innerHalf = [[14, 14], [24, 30], [55, 45], [100, 52], [130, 68], [142, 78], [280, 78], [292, 102], [338, 112], [420, 124], [484, 124], [500, 108], [513, 108]];
+  function outline(half) {
+    var pts = [], i;
+    for (i = 0; i < half.length; i++) pts.push(plt(half[i][0], CZ - half[i][1]));
+    for (i = half.length - 1; i >= 0; i--) pts.push(plt(half[i][0], CZ + half[i][1]));
+    return pts;
+  }
+  var outerPts = outline(outerHalf), innerPts = outline(innerHalf);
+  function extrude(shape, depth, y0, m) {
+    var g = new THREE.ExtrudeGeometry(shape, { depth: depth, bevelEnabled: false });
+    g.rotateX(-PI / 2);
+    return mk(g, m, null, 0, y0, 0);
+  }
+  /* underside plate, deck floor, hull ring */
+  extrude(new THREE.Shape(outerPts), 0.3, 0, M.hull);
+  extrude(new THREE.Shape(innerPts), 0.02, FL - 0.02, M.floor);
+  var ringShape = new THREE.Shape(outerPts); ringShape.holes.push(new THREE.Path(innerPts));
+  extrude(ringShape, RIM - FL, FL, M.hull);
+  /* greeble plates along the rim */
+  for (var i = 0; i < innerPts.length; i++) {
+    var a = innerPts[i], b = innerPts[(i + 1) % innerPts.length], len = a.distanceTo(b);
+    for (var t = 0.5; t < len - 0.5; t += 1.4 + rnd()) {
+      var f = t / len, px = a.x + (b.x - a.x) * f, pz = a.y + (b.y - a.y) * f;
+      var o = new THREE.Vector2(px, pz).normalize(), sz = 0.4 + rnd() * 0.6;
+      var gm = mk(box(sz, 0.1 + rnd() * 0.3, 0.4 + rnd() * 0.5), rnd() > 0.7 ? M.dark : M.hull, null, px + o.x * 0.6, RIM + 0.1, -(pz + o.y * 0.6));
+    }
+  }
+
+  /* ---------- furniture ---------- */
+  function chair(px, py, facing) {
+    var g = grp(null, X(px), FL, Z(py)); g.rotation.y = facing;
+    mk(cyl(0.07, 0.1, 0.3, 10), M.dark, g, 0, 0.15, 0);
+    mk(box(0.5, 0.12, 0.5), M.seat, g, 0, 0.36, 0);
+    mk(box(0.5, 0.55, 0.1), M.seat, g, 0, 0.68, -0.22);
+    return g;
+  }
+  function consoleUnit(px, py, w, d, facing, screen) {
+    var g = grp(null, X(px), FL, Z(py)); g.rotation.y = facing;
+    mk(box(w, 0.85, d), M.dark, g, 0, 0.425, 0);
+    var sc = mk(box(w * 0.86, 0.04, d * 0.5), screen, g, 0, 0.9, d * 0.12); sc.rotation.x = -0.35;
+    for (var i = 0; i < 3; i++) mk(box(w * 0.12, 0.03, 0.08), i === 1 ? M.amber : M.blue, g, -w * 0.3 + i * w * 0.3, 0.87, -d * 0.28);
+    return g;
+  }
+  function machine(px, py) {
+    var g = grp(null, X(px), FL, Z(py));
+    mk(box(3.0, 0.5, 3.0), M.dark, g, 0, 0.25, 0);
+    mk(cyl(1.0, 1.1, 0.9, 24), mat(0x3a3d45, 0.6, 0.4), g, 0, 0.95, 0);
+    for (var i = 0; i < 3; i++) { var r = mk(new THREE.TorusGeometry(1.02, 0.05, 8, 28), M.blue, g, 0, 0.75 + i * 0.28, 0); r.rotation.x = PI / 2; }
+    mk(cyl(0.35, 0.35, 0.2, 16), M.steel, g, 0, 1.5, 0);
+    for (var s = -1; s <= 1; s += 2) mk(box(0.5, 0.7, 2.6), mat(0x31343b, 0.5, 0.5), g, s * 1.25, 0.6, 0);
+    return g;
+  }
+  function crate(px, py, s, h, col) { var m = mk(box(s, h, s), mat(col, 0.2, 0.7), null, X(px), FL + h / 2, Z(py)); mk(box(s * 1.02, 0.08, s * 1.02), M.dark, m, 0, h * 0.25, 0); return m; }
+
+  /* ---------- bridge (nose) ---------- */
+  consoleUnit(24, 167, 3.2, 0.8, -PI / 2, M.blue);
+  consoleUnit(46, 124, 3.0, 0.8, PI, M.green); consoleUnit(46, 210, 3.0, 0.8, 0, M.green);
+  consoleUnit(80, 118, 2.6, 0.8, PI, M.blue); consoleUnit(80, 216, 2.6, 0.8, 0, M.blue);
+  chair(62, 150, -PI / 2); chair(62, 184, -PI / 2);
+  wallV(100, 115, 152, 1.7); wallV(100, 182, 219, 1.7);
+  mk(box(0.14, 1.9, 0.14), M.blue, null, X(100), FL + 0.95, Z(152)); mk(box(0.14, 1.9, 0.14), M.blue, null, X(100), FL + 0.95, Z(182));
+
+  /* ---------- main hall ---------- */
+  /* workstations along the upper and lower hull wall */
+  [150, 168, 186].forEach(function (px) { consoleUnit(px, 90, 1.7, 0.8, PI, M.blue); consoleUnit(px, 246, 1.7, 0.8, 0, M.green); });
+  /* engineering rooms */
+  wallV(195, 92, 148); wallV(258, 92, 148); wallH(92, 195, 258); wallH(148, 195, 214); wallH(148, 238, 258);
+  machine(226, 118);
+  wallV(195, 186, 242); wallV(258, 186, 242); wallH(242, 195, 258); wallH(186, 195, 214); wallH(186, 238, 258);
+  machine(226, 214);
+  /* crew seats */
+  chair(272, 104, PI / 2); chair(272, 130, PI / 2); chair(284, 104, -PI / 2); chair(284, 130, -PI / 2);
+  chair(205, 160, PI); chair(250, 168, PI);
+  /* holo table with planet display */
+  var tb = grp(null, X(298), FL, Z(210));
+  mk(box(3.2, 0.7, 2.0), M.dark, tb, 0, 0.35, 0);
+  var top = mk(new THREE.PlaneGeometry(2.9, 1.7), new THREE.MeshStandardMaterial({ map: planetTex, emissive: 0xffffff, emissiveMap: planetTex, emissiveIntensity: 0.9 }), tb, 0, 0.72, 0); top.rotation.x = -PI / 2;
+  var planet = mk(new THREE.SphereGeometry(0.34, 24, 18), new THREE.MeshStandardMaterial({ color: 0xc4502c, emissive: 0x6a1e0c, emissiveIntensity: 0.7, roughness: 0.8 }), tb, 0, 1.25, 0);
+  var holoRing = mk(new THREE.TorusGeometry(0.5, 0.012, 6, 40), M.amber, tb, 0, 1.25, 0); holoRing.rotation.x = PI / 2.4;
+  chair(268, 210, PI / 2); chair(330, 210, -PI / 2); chair(300, 236, 0); chair(318, 236, 0); chair(250, 232, 0);
+  /* bulkhead with a door */
+  wallV(398, 45, 148, 1.9); wallV(398, 186, 289, 1.9);
+  mk(box(0.14, 1.9, 0.14), M.blue, null, X(398), FL + 0.95, Z(148)); mk(box(0.14, 1.9, 0.14), M.blue, null, X(398), FL + 0.95, Z(186));
+  [[360, 100], [374, 100], [362, 235]].forEach(function (p) { crate(p[0], p[1], 0.9, 0.7, 0x5b5f68); });
+
+  /* ---------- cargo bay ---------- */
+  crate(425, 112, 1.2, 1.0, 0x7a6f58); crate(443, 112, 1.2, 1.0, 0x6b6150); crate(425, 128, 1.0, 0.7, 0x5b5f68); crate(470, 150, 1.4, 1.2, 0x7a6f58); crate(470, 190, 1.2, 0.9, 0x6b6150);
+  /* blue pipe room, upper right */
+  wallV(402, 45, 85); wallV(465, 45, 85); wallH(85, 402, 430); wallH(85, 448, 465);
+  var pipe = new THREE.TorusGeometry(1.5, 0.28, 10, 28, PI * 1.5);
+  var p1 = mk(pipe, M.blue, null, X(436), FL + 0.45, Z(62)); p1.rotation.x = PI / 2; p1.rotation.z = PI / 2;
+  mk(box(3.6, 0.3, 0.5), M.blue, null, X(436), FL + 0.45, Z(52));
+  mk(box(1.2, 0.8, 1.2), M.dark, null, X(412), FL + 0.4, Z(70));
+  /* white-lit room, lower right */
+  wallV(432, 245, 289); wallV(472, 245, 289); wallH(245, 432, 472);
+  blk(435, 248, 469, 289, FL + 0.01, 0.03, M.white);
+  /* red conduit on the stern wall */
+  for (i = 0; i < 6; i++) blk(506 + (i % 2) * 3, 138 + i * 9, 512, 144 + i * 9, FL, 1.6, M.red);
+  blk(500, 133, 504, 196, FL, 1.8, M.dark);
+
+  /* ---------- turrets on the hull ---------- */
+  function turret(px, py, side) {
+    var g = grp(null, X(px), RIM, Z(py));
+    mk(cyl(1.5, 1.8, 0.35, 24), M.dark, g, 0, 0.17, 0);
+    var head = grp(g, 0, 0.5, 0); head.rotation.y = side * 0.6 + (side > 0 ? 0 : PI);
+    mk(box(1.3, 0.55, 1.0), mat(0x2d3037, 0.6, 0.4), head, 0, 0.1, 0);
+    for (var s = -1; s <= 1; s += 2) mk(cyl(0.09, 0.09, 2.0, 10), M.dark, head, 0, 0.12, 0).rotation.z = PI / 2;
+    head.children[1].position.set(0.9, 0.12, -0.28); head.children[2].position.set(0.9, 0.12, 0.28);
+    mk(box(0.14, 0.14, 0.4), M.blue, head, -0.3, 0.42, 0);
+    return g;
+  }
+  turret(350, 66, -1); turret(362, 268, 1);
+
+  /* ---------- engines ---------- */
+  var engineLights = [];
+  function engine(z, r, long) {
+    var g = grp(null, 17.6, 1.1, z);
+    var body = mk(cyl(r, r * 1.05, long, 24), M.hull, g); body.rotation.z = PI / 2;
+    for (var i = 0; i < 6; i++) { var ring = mk(new THREE.TorusGeometry(r * 1.02, 0.05, 6, 28), M.dark, g, -long / 2 + 0.6 + i * 0.55, 0, 0); ring.rotation.y = PI / 2; }
+    var noz = mk(cyl(r * 0.8, r * 0.8, 0.05, 24), glow(0x7fc4ff, 1.8), g, long / 2 + 0.03, 0, 0); noz.rotation.z = PI / 2;
+    var plume = mk(new THREE.ConeGeometry(r * 0.8, 4.5, 20, 1, true), new THREE.MeshBasicMaterial({ color: 0x5aa8ff, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }), g, long / 2 + 2.3, 0, 0);
+    plume.rotation.z = -PI / 2;
+    return g;
+  }
+  engine(-3.4, 1.55, 5.2); engine(3.2, 1.55, 5.2); engine(-0.0 - 1.0, 0.6, 4.4); engine(1.0, 0.6, 4.4);
+  var eL = new THREE.PointLight(0x5aa8ff, 1.6, 14); eL.position.set(22, 1.2, 0); ship.add(eL); engineLights.push(eL);
+
+  /* ---------- interior lights ---------- */
+  function plight(c, k, d, px, py, y) { var l = new THREE.PointLight(c, k, d); l.position.set(X(px), y || 1.8, Z(py)); ship.add(l); return l; }
+  plight(0x9cc4ff, 0.5, 10, 55, 167); plight(0xfff2e0, 0.45, 12, 160, 167); plight(0xfff2e0, 0.5, 12, 300, 167);
+  plight(0x4aa8ff, 0.7, 8, 430, 62); plight(0xffffff, 0.5, 8, 452, 268); plight(0xff3322, 0.8, 7, 508, 165, 1.2); plight(0xfff2e0, 0.4, 12, 450, 167);
+
+  /* ---------- stars ---------- */
+  function stars(n, r, size, col) {
+    var p = new Float32Array(n * 3);
+    for (var i = 0; i < n; i++) { var u = rnd() * 2 - 1, th = rnd() * PI * 2, s = Math.sqrt(1 - u * u), R = r * (0.8 + rnd() * 0.3); p[i * 3] = R * s * Math.cos(th); p[i * 3 + 1] = R * u; p[i * 3 + 2] = R * s * Math.sin(th); }
+    var g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(p, 3));
+    var o = new THREE.Points(g, new THREE.PointsMaterial({ color: col, size: size, sizeAttenuation: false, transparent: true, opacity: 0.9 }));
+    scene.add(o); return o;
+  }
+  var starsA = stars(1400, 220, 1.6, 0xffffff), starsB = stars(500, 210, 2.2, 0x9fc4ff), starsC = stars(250, 205, 2.4, 0xffc9a0);
+
+  /* ---------- global lights ---------- */
+  scene.add(new THREE.HemisphereLight(0xaab8e0, 0x1a1c26, 0.35));
+  var key = new THREE.DirectionalLight(0xffffff, 0.7); key.position.set(-6, 26, 8); key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048);
+  var sc = key.shadow.camera; sc.left = -24; sc.right = 24; sc.top = 14; sc.bottom = -14; sc.near = 5; sc.far = 60; key.shadow.bias = -0.0004;
+  scene.add(key);
+  var rimL = new THREE.DirectionalLight(0x7fa0ff, 0.5); rimL.position.set(10, 8, -20); scene.add(rimL);
+
+  ship.traverse(function (o) { if (o.isMesh && !(o.material.transparent)) { o.castShadow = true; o.receiveShadow = true; } });
+
+  /* ---------- camera and views ---------- */
+  var camera = new THREE.PerspectiveCamera(40, 1, 0.1, 600);
+  var controls = new THREE.OrbitControls(camera, canvas);
+  controls.enableDamping = true; controls.dampingFactor = 0.08; controls.minDistance = 3; controls.maxDistance = 120; controls.maxPolarAngle = PI * 0.52;
+  var view = "top", tween = null, userMoved = false;
+  controls.addEventListener("start", function () { userMoved = true; tween = null; });
+
+  function portrait() { return stage.clientWidth < stage.clientHeight * 0.9; }
+  function orient() { ship.rotation.y = portrait() ? -PI / 2 : 0; ship.updateMatrixWorld(true); }
+  function viewPoints(v) {
+    var asp = camera.aspect, t = Math.tan(camera.fov * PI / 360), pt = portrait();
+    var w = pt ? 22 : 43, h = pt ? 43 : 22;
+    var d = Math.max(w / (2 * t * asp), h / (2 * t)) * 1.12;
+    var p, q;
+    if (v === "top") { var tg = ship.localToWorld(new THREE.Vector3(0.6, 0, 0)); return { pos: tg.clone().add(new THREE.Vector3(0, d, 4)), tgt: tg }; }
+    else if (v === "angle") { p = new THREE.Vector3(-10, d * 0.55, d * 0.72); q = new THREE.Vector3(0.6, 0.4, 0); }
+    else { p = new THREE.Vector3(-14.8, 2.3, 0.6); q = new THREE.Vector3(2, 1.0, 0); }
+    return { pos: ship.localToWorld(p), tgt: ship.localToWorld(q) };
+  }
+  function goTo(v, instant) {
+    view = v; var pts = viewPoints(v);
+    document.querySelectorAll(".tab").forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-v") === v ? "true" : "false"); });
+    if (instant) { camera.position.copy(pts.pos); controls.target.copy(pts.tgt); controls.update(); return; }
+    tween = { t: 0, p0: camera.position.clone(), q0: controls.target.clone(), p1: pts.pos, q1: pts.tgt };
+  }
+  document.querySelectorAll(".tab").forEach(function (b) { b.addEventListener("click", function () { userMoved = false; goTo(b.getAttribute("data-v")); }); });
+
+  var lastPortrait = null;
+  function fit() {
+    var w = stage.clientWidth, h = stage.clientHeight; if (!w || !h) return;
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+    var p = portrait();
+    if (p !== lastPortrait) { lastPortrait = p; orient(); goTo(view, true); }
+    else if (!userMoved && view !== "bridge") goTo(view, true);
+  }
+  if (window.ResizeObserver) new ResizeObserver(fit).observe(stage); else window.addEventListener("resize", fit);
+  var h0 = (location.hash || "").replace("#", ""); if (h0 === "angle" || h0 === "bridge") view = h0;
+  fit();
+
+  var t0 = performance.now(), last = t0;
+  (function loop(now) {
+    requestAnimationFrame(loop);
+    var dt = Math.min(0.05, ((now || performance.now()) - last) / 1000); last = now || performance.now();
+    var t = (last - t0) / 1000;
+    if (tween) {
+      tween.t = Math.min(1, tween.t + dt / 0.9); var e = tween.t * tween.t * (3 - 2 * tween.t);
+      camera.position.lerpVectors(tween.p0, tween.p1, e); controls.target.lerpVectors(tween.q0, tween.q1, e);
+      if (tween.t >= 1) tween = null;
+    }
+    planet.rotation.y = t * 0.6; holoRing.rotation.z = t * 0.9;
+    engineLights.forEach(function (l) { l.intensity = 1.5 + Math.sin(t * 20) * 0.12; });
+    starsA.rotation.y = t * 0.002; starsB.rotation.y = t * 0.003;
+    controls.update(); renderer.render(scene, camera);
+  })();
+  window.__ship = { scene: scene, camera: camera, controls: controls, goTo: goTo };
+})();
+</script>
+
+</body></html>
