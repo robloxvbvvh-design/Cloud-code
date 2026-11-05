@@ -434,7 +434,10 @@ button:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
     for (var j = 0; j < cols.length; j++) { var c = cols[j], cx = Math.max(c.x1, Math.min(x, c.x2)), cz = Math.max(c.z1, Math.min(z, c.z2)), dx = x - cx, dz = z - cz; if (dx * dx + dz * dz < r * r) return false; }
     return true;
   }
-  function moveEnt(e, dx, dz) { if (canStand(e.x + dx, e.z, e.r)) e.x += dx; if (canStand(e.x, e.z + dz, e.r)) e.z += dz; }
+  function moveEnt(e, dx, dz) {
+    if (!canStand(e.x, e.z, e.r)) { e.x += dx; e.z += dz; return; }   /* never stay trapped */
+    if (canStand(e.x + dx, e.z, e.r)) e.x += dx; if (canStand(e.x, e.z + dz, e.r)) e.z += dz;
+  }
 
   /* ================= characters in the world ================= */
   var KNIGHT = buildKnight(), SITH = buildSith(), BOSS = buildBoss();
@@ -499,7 +502,7 @@ button:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
     world.position.set(0, 0, 0); field.visible = true; if (cols.indexOf(fieldCol) < 0) cols.push(fieldCol);
     plumes.forEach(function (p) { p.scale.set(1, 1, 1); });
     waveRing.visible = false; waveDisc.visible = false;
-    P = spawnChar(KNIGHT, 1); P.x = X(30); P.z = Z(167); P.r = 0.4; P.hp = P.max = 100; P.face = PI / 2; P.atk = -1; P.hitDone = false; P.dash = -1; P.dashCd = 0; P.inv = 0; P.dx = 1; P.dz = 0; P.dead = false;
+    P = spawnChar(KNIGHT, 1); P.x = X(66); P.z = Z(167); P.r = 0.4; P.hp = P.max = 100; P.face = PI / 2; P.atk = -1; P.hitDone = false; P.dash = -1; P.dashCd = 0; P.inv = 0; P.dx = 1; P.dz = 0; P.dead = false;
     [[150, 148], [150, 188], [176, 167]].forEach(function (p) { newSith(p[0], p[1]); });
     [[322, 128], [338, 205], [362, 167]].forEach(function (p) { newSith(p[0], p[1]); });
     boss = spawnChar(BOSS, 1.3); boss.type = "boss"; boss.x = X(482); boss.z = Z(167); boss.r = 0.7; boss.hp = boss.max = 420; boss.face = -PI / 2; boss.st = "sleep"; boss.t = 0; boss.cd = 1; boss.waveCd = 6; boss.kx = 0; boss.kz = 0; boss.p2 = false; boss.hit = false; boss.warn.scale.setScalar(2.1);
@@ -627,7 +630,7 @@ button:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
       if (q >= 1 && phase === "play") { phase = "fly"; flyT = 0; setTimeout(function () { timeScale = 1; }, 0); }
       return;
     }
-    if (e.st === "idle") { if (d < 7.5) { e.st = "chase"; } e.holder.rotation.y = e.face; return; }
+    if (e.st === "idle") { if (d < 6.5) { e.st = "chase"; } e.holder.rotation.y = e.face; return; }
     var atkRange = isB ? 2.7 : 1.9, spdMul = isB ? (e.p2 ? 3.9 : 3.3) : 3.3;
     e.cd -= dt; if (isB) e.waveCd -= dt;
     if (e.st === "chase") {
@@ -727,7 +730,7 @@ button:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
   }
   reset(); phase = "menu"; fit();
   requestAnimationFrame(loop);
-  window.__g = { get P() { return P; }, E: function () { return E; }, get phase() { return phase; }, X: X, Z: Z, openField: openField, killAll: function () { E.forEach(function (e) { if (e.type === "sith" && e.st !== "dead") { e.hp = 0; killSith(e); } }); }, wake: wakeBoss, setPhase: function (p) { phase = p; } };
+  window.__g = { canStand: canStand, get P() { return P; }, E: function () { return E; }, get phase() { return phase; }, X: X, Z: Z, openField: openField, killAll: function () { E.forEach(function (e) { if (e.type === "sith" && e.st !== "dead") { e.hp = 0; killSith(e); } }); }, wake: wakeBoss, setPhase: function (p) { phase = p; } };
 })();
 </script>
 
