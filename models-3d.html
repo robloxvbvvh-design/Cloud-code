@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Три 3D-героя</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Barlow:wght@400;500&display=swap">
+<style>
+/* Layout: full-bleed 3D stage, name plate top-left, three-way selector docked at the bottom. */
+:root {
+  --bg: #0a0c11;
+  --bg-glow: #1a1d29;
+  --panel: rgba(18, 21, 30, 0.78);
+  --line: rgba(255, 255, 255, 0.12);
+  --fg: #eceef4;
+  --muted: #959cae;
+  --accent: #ff2d2d;
+  --font-display: "Rajdhani", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "Barlow", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  overflow: hidden;
+}
+#app { position: relative; height: 100%; overflow: hidden; }
+#stage {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 58%, var(--bg-glow) 0%, var(--bg) 68%);
+}
+#c { display: block; width: 100%; height: 100%; touch-action: none; outline: none; }
+.top, .dock {
+  position: absolute; left: 0; right: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  pointer-events: none;
+}
+.top { top: 0; padding-top: 14px; display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.plate { min-width: 0; }
+.eyebrow { font: 600 12px/1 var(--font-display); letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
+h1 { margin: 6px 0 4px; font: 700 clamp(28px, 8vw, 40px)/1 var(--font-display); letter-spacing: 0.02em; text-transform: uppercase; text-wrap: balance; }
+.note { margin: 0; max-width: 34ch; font-size: 14px; line-height: 1.4; color: var(--muted); }
+#rot {
+  pointer-events: auto; flex: none;
+  min-height: 40px; padding: 0 14px;
+  background: var(--panel); color: var(--fg);
+  border: 1px solid var(--line); border-radius: 999px;
+  font: 600 13px var(--font-display); letter-spacing: 0.08em; text-transform: uppercase;
+  backdrop-filter: blur(8px);
+}
+.dock { bottom: 0; padding-bottom: 14px; }
+.hint { margin: 0 0 10px; text-align: center; font-size: 12px; color: var(--muted); }
+.tabs { pointer-events: auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; max-width: 520px; margin: 0 auto; }
+.tab {
+  min-height: 52px; padding: 6px 8px;
+  display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px;
+  background: var(--panel); color: var(--muted);
+  border: 1px solid var(--line); border-radius: 10px;
+  font: 600 15px/1.1 var(--font-display); letter-spacing: 0.06em; text-transform: uppercase;
+  backdrop-filter: blur(8px);
+}
+.tab small { font: 400 11px/1 var(--font-body); letter-spacing: 0; text-transform: none; opacity: 0.8; }
+.tab[aria-pressed="true"] { color: var(--fg); border-color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); }
+button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+#fail { position: absolute; inset: 0; display: none; place-items: center; padding: 24px; text-align: center; color: var(--muted); }
+</style>
+
+</head><body>
+<main id="app">
+  <div id="stage"><canvas id="c" aria-label="3D-модель, крутите пальцем"></canvas></div>
+  <header class="top">
+    <div class="plate">
+      <div class="eyebrow" id="eyebrow">Модель 1 из 3</div>
+      <h1 id="name">Ситх-воин</h1>
+      <p class="note" id="note"></p>
+    </div>
+    <button id="rot" type="button" aria-pressed="true">Вращение: вкл</button>
+  </header>
+  <div class="dock">
+    <p class="hint">Один палец крутит, два пальца приближают</p>
+    <nav class="tabs" aria-label="Выбор модели">
+      <button class="tab" type="button" data-i="0" aria-pressed="true">Ситх<small>красный меч</small></button>
+      <button class="tab" type="button" data-i="1" aria-pressed="false">Рыцарь<small>меч и щит</small></button>
+      <button class="tab" type="button" data-i="2" aria-pressed="false">Босс<small>тёмный лорд</small></button>
+    </nav>
+  </div>
+  <div id="fail">Не удалось запустить 3D. Откройте страницу в современном браузере с WebGL.</div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function () {
+  "use strict";
+  var canvas = document.getElementById("c");
+  var stage = document.getElementById("stage");
+  if (!window.THREE) { document.getElementById("fail").style.display = "grid"; return; }
+
+  /* ---------- helpers ---------- */
+  var PI = Math.PI;
+  function mat(c, m, r) { return new THREE.MeshStandardMaterial({ color: c, metalness: m == null ? 0.35 : m, roughness: r == null ? 0.45 : r }); }
+  function glow(c) { return new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 1.7, roughness: 0.4 }); }
+  function grp(parent, x, y, z) { var g = new THREE.Group(); g.position.set(x || 0, y || 0, z || 0); if (parent) parent.add(g); return g; }
+  function mk(geo, material, parent, x, y, z) { var m = new THREE.Mesh(geo, material); m.position.set(x || 0, y || 0, z || 0); if (parent) parent.add(m); return m; }
+  function box(w, h, d) { return new THREE.BoxGeometry(w, h, d); }
+  function cyl(rt, rb, h, s) { return new THREE.CylinderGeometry(rt, rb, h, s || 16); }
+  function sph(r, ws, hs) { return new THREE.SphereGeometry(r, ws || 18, hs || 14); }
+  /* cylinder hanging down from its origin (a limb segment) */
+  function seg(len, rt, rb, material, parent, x, y, z) {
+    var g = new THREE.CylinderGeometry(rt, rb, len, 14); g.translate(0, -len / 2, 0);
+    return mk(g, material, parent, x, y, z);
+  }
+
+  /* ---------- a hand with exactly five digits: four fingers + thumb ---------- */
+  function makeHand(material, side, curl, parent) {
+    var h = grp(parent);
+    var palmG = box(0.085, 0.09, 0.034); palmG.translate(0, -0.045, 0);
+    mk(palmG, material, h);
+    var lens = [0.05, 0.058, 0.054, 0.043];
+    var xs = [side * 0.03, side * 0.01, -side * 0.01, -side * 0.03];
+    for (var i = 0; i < 4; i++) {
+      var f1 = grp(h, xs[i], -0.09, 0); f1.rotation.x = -curl * 0.95;
+      seg(lens[i] * 0.55, 0.0098, 0.0092, material, f1);
+      var f2 = grp(f1, 0, -lens[i] * 0.55, 0); f2.rotation.x = -curl;
+      seg(lens[i] * 0.45, 0.0092, 0.0082, material, f2);
+      mk(sph(0.0095, 8, 6), material, f1);
+    }
+    var t1 = grp(h, side * 0.047, -0.022, 0.004);
+    t1.rotation.z = side * 0.55; t1.rotation.x = -curl * 0.5;
+    seg(0.034, 0.012, 0.0105, material, t1);
+    var t2 = grp(t1, 0, -0.034, 0); t2.rotation.x = -curl * 0.6;
+    seg(0.028, 0.0105, 0.0092, material, t2);
+    h.rotation.y = -side * PI / 2;   /* palm faces the thigh at rest */
+    return h;
+  }
+
+  /* ---------- shared humanoid body ---------- */
+  function base(o) {
+    var g = new THREE.Group(), w = o.w || 1, A = o.A, U = o.U;
+    /* pedestal */
+    mk(cyl(1.05, 1.12, 0.07, 48), mat(0x0b0d12, 0.3, 0.7), g, 0, -0.035, 0);
+    var ring = mk(new THREE.TorusGeometry(1.0, 0.012, 8, 96), glow(o.accent), g, 0, 0.004, 0); ring.rotation.x = PI / 2;
+    /* pelvis + torso */
+    mk(box(0.4 * w, 0.16, 0.26), U, g, 0, 1.0, 0);
+    var tg = cyl(0.26 * w, 0.2 * w, 0.52, 20); tg.scale(1, 1, 0.68); mk(tg, U, g, 0, 1.28, 0);
+    var cg = cyl(0.29 * w, 0.225 * w, 0.34, 20); cg.scale(1, 1, 0.72); mk(cg, A, g, 0, 1.38, 0);
+    mk(cyl(0.06, 0.07, 0.14, 12), U, g, 0, 1.62, 0);
+    /* legs */
+    for (var s = -1; s <= 1; s += 2) {
+      var hip = grp(g, s * 0.12 * w, 0.98, 0);
+      seg(0.46, 0.1, 0.075, U, hip);
+      seg(0.3, 0.108, 0.088, A, hip, 0, -0.06, 0);
+      var knee = grp(hip, 0, -0.46, 0);
+      mk(sph(0.08), A, knee, 0, 0, 0.025);
+      seg(0.42, 0.078, 0.06, A, knee);
+      var ank = grp(knee, 0, -0.42, 0);
+      mk(box(0.12, 0.09, 0.28), A, ank, 0, -0.05, 0.065);
+      mk(box(0.1, 0.05, 0.1), A, ank, 0, -0.07, 0.17);
+    }
+    /* arms */
+    var arms = {};
+    for (s = -1; s <= 1; s += 2) {
+      var sh = grp(g, s * 0.34 * w, 1.52, 0);
+      mk(sph(0.088), A, sh);
+      var p = mk(new THREE.SphereGeometry(0.13 * (o.p || 1), 18, 10, 0, PI * 2, 0, PI / 2), A, sh, s * 0.03, 0.035, 0);
+      p.rotation.z = -s * 0.5;
+      seg(0.3, 0.066, 0.056, U, sh);
+      var el = grp(sh, 0, -0.3, 0);
+      mk(sph(0.062), A, el);
+      seg(0.28, 0.06, 0.047, A, el);
+      var wr = grp(el, 0, -0.29, 0);
+      mk(sph(0.044), A, wr);
+      var hand = makeHand(o.S, s, o.curl || 0.35, wr);
+      arms[s] = { sh: sh, el: el, wr: wr, hand: hand };
+    }
+    return { g: g, arms: arms };
+  }
+
+  function pose(arm, sx, sz, ex) { arm.sh.rotation.set(sx, 0, sz); arm.el.rotation.set(ex, 0, 0); }
+
+  /* closes the hand around a weapon whose axis points along A; returns the grip point */
+  function grip(g, arm, side, Adir, Fdir) {
+    g.updateMatrixWorld(true);
+    var A = Adir.clone().normalize();
+    var F = Fdir.clone(); F.sub(A.clone().multiplyScalar(F.dot(A))).normalize();
+    var X = side < 0 ? A.clone().negate() : A.clone();
+    var Y = F.clone().negate();
+    var Z = new THREE.Vector3().crossVectors(X, Y);
+    var q = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, Y, Z));
+    var pq = arm.wr.getWorldQuaternion(new THREE.Quaternion());
+    arm.hand.quaternion.copy(pq.invert().multiply(q));
+    g.updateMatrixWorld(true);
+    return arm.hand.localToWorld(new THREE.Vector3(0, -0.062, 0.034));
+  }
+  function place(obj, pos, A) {
+    obj.position.copy(pos);
+    obj.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), A.clone().normalize());
+  }
+
+  function cape(g, color, wTop, wBot, y0, len, back) {
+    var geo = new THREE.PlaneGeometry(1, 1, 10, 14), p = geo.attributes.position;
+    for (var i = 0; i < p.count; i++) {
+      var u = p.getX(i) + 0.5, v = 0.5 - p.getY(i);
+      var w = wTop + (wBot - wTop) * v;
+      p.setXYZ(i, (u - 0.5) * w, y0 - v * len, -back - v * 0.26 - Math.sin(u * PI * 3) * 0.03 * v);
+    }
+    geo.computeVertexNormals();
+    var m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: color, roughness: 0.92, metalness: 0, side: THREE.DoubleSide }));
+    g.add(m); return m;
+  }
+
+  /* ---------- lightsaber ---------- */
+  var flickers = [];
+  function saber(col) {
+    var w = new THREE.Group();
+    var steel = mat(0x9a9fa8, 0.8, 0.3), dark = mat(0x1a1b20, 0.6, 0.4);
+    mk(cyl(0.022, 0.022, 0.3, 14), dark, w);
+    for (var i = -1; i <= 1; i++) mk(cyl(0.025, 0.025, 0.018, 14), steel, w, 0, i * 0.07, 0);
+    mk(cyl(0.032, 0.026, 0.04, 14), steel, w, 0, 0.16, 0);
+    mk(cyl(0.03, 0.03, 0.035, 14), steel, w, 0, -0.16, 0);
+    var L = 1.15, y0 = 0.18;
+    mk(cyl(0.015, 0.015, L, 12), new THREE.MeshBasicMaterial({ color: 0xffe3e3 }), w, 0, y0 + L / 2, 0);
+    mk(sph(0.015, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffe3e3 }), w, 0, y0 + L, 0);
+    var hm = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.42, blending: THREE.AdditiveBlending, depthWrite: false });
+    mk(cyl(0.04, 0.04, L + 0.02, 14), hm, w, 0, y0 + L / 2, 0);
+    mk(sph(0.04, 12, 8), hm, w, 0, y0 + L, 0);
+    var hm2 = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false });
+    mk(cyl(0.075, 0.075, L + 0.05, 14), hm2, w, 0, y0 + L / 2, 0);
+    var light = new THREE.PointLight(col, 1.3, 3.4); light.position.set(0, y0 + L / 2, 0); w.add(light);
+    flickers.push(light);
+    return w;
+  }
+
+  /* =====================================================================
+     1. SITH WARRIOR: ribbed black armour, red light strips, red saber
+     ===================================================================== */
+  function buildSith() {
+    var RED = 0xff2a2a;
+    var A = mat(0x23262d, 0.55, 0.38), T = mat(0x14161a, 0.5, 0.5), U = mat(0x101114, 0.2, 0.7), S = mat(0x1b1d22, 0.5, 0.4);
+    var R = glow(RED), silver = mat(0xa3a9b3, 0.75, 0.3);
+    var b = base({ A: A, U: U, S: S, w: 1.05, p: 1.45, curl: 0.4, accent: RED }), g = b.g;
+    /* ribs and chest */
+    for (var i = 0; i < 5; i++) {
+      var tg = new THREE.TorusGeometry(0.235, 0.02, 8, 28); tg.scale(1.05, 1, 1);
+      var rib = mk(tg, T, g, 0, 1.12 + i * 0.068, 0); rib.rotation.x = PI / 2; rib.scale.y = 0.7;
+    }
+    mk(box(0.022, 0.3, 0.012), R, g, -0.085, 1.4, 0.208);
+    mk(box(0.022, 0.3, 0.012), R, g, 0.085, 1.4, 0.208);
+    mk(box(0.2, 0.026, 0.012), R, g, 0, 1.31, 0.212);
+    var emb = mk(new THREE.CircleGeometry(0.045, 20), R, g, 0, 1.5, 0.215);
+    mk(box(0.3, 0.05, 0.12), A, g, 0, 1.06, 0.1).rotation.x = 0.3;
+    /* collar and head */
+    mk(new THREE.CylinderGeometry(0.17, 0.1, 0.13, 18, 1, true), T, g, 0, 1.6, 0).material.side = THREE.DoubleSide;
+    var hg = sph(0.125, 22, 16); hg.scale(0.92, 1.18, 1.0);
+    mk(hg, silver, g, 0, 1.76, 0);
+    mk(box(0.15, 0.1, 0.1), T, g, 0, 1.69, 0.065);
+    var e1 = mk(box(0.045, 0.014, 0.01), R, g, -0.04, 1.755, 0.115); e1.rotation.z = -0.25;
+    var e2 = mk(box(0.045, 0.014, 0.01), R, g, 0.04, 1.755, 0.115); e2.rotation.z = 0.25;
+    mk(box(0.012, 0.09, 0.01), R, g, 0, 1.69, 0.118);
+    for (var s = -1; s <= 1; s += 2) {
+      var tube = seg(0.16, 0.012, 0.012, R, g, s * 0.06, 1.66, 0.1);
+      tube.rotation.x = -0.3;
+      var spike = mk(cyl(0.001, 0.02, 0.12, 8), T, g, s * 0.12, 1.84, -0.02); spike.rotation.z = -s * 0.5;
+    }
+    /* glowing line along each shin and forearm */
+    for (s = -1; s <= 1; s += 2) {
+      mk(box(0.014, 0.3, 0.01), R, g, s * 0.125, 0.43, 0.085);
+    }
+    /* cape */
+    cape(g, 0x16181d, 0.6, 1.0, 1.56, 1.35, 0.18);
+    /* arms: right hand (viewer's left) holds the saber, low guard */
+    pose(b.arms[-1], -0.3, -0.35, -1.0);
+    pose(b.arms[1], 0.05, 0.22, -0.35);
+    var A_ = new THREE.Vector3(-0.55, -0.4, 0.55);
+    var gp = grip(g, b.arms[-1], -1, A_, new THREE.Vector3(0, -0.2, 1));
+    var sw = saber(RED); g.add(sw); place(sw, gp, A_);
+    return { g: g, accent: RED, name: "Ситх-воин", note: "Чёрная рёберная броня, красные линии света и красный меч в правой руке. По пять пальцев на каждой руке." };
+  }
+
+  /* =====================================================================
+     2. KNIGHT: bronze plate, great helm, sword and shield
+     ===================================================================== */
+  function buildKnight() {
+    var GOLD = 0xe3b45e;
+    var A = mat(0xb39a68, 0.5, 0.38), B = mat(0x7d6a43, 0.45, 0.5), U = mat(0x5d5240, 0.15, 0.75), cloth = mat(0x8e7c55, 0, 0.9);
+    var dark = mat(0x16130e, 0.2, 0.6), steel = mat(0xc9ccd2, 0.75, 0.28);
+    var b = base({ A: A, U: U, S: A, w: 1.12, p: 1.5, curl: 0.35, accent: GOLD }), g = b.g;
+    /* tabard over the hips and cross on the chest */
+    var tab = cyl(0.25, 0.34, 0.5, 20); tab.scale(1, 1, 0.78); mk(tab, cloth, g, 0, 0.83, 0);
+    mk(box(0.05, 0.22, 0.012), B, g, 0, 1.4, 0.245);
+    mk(box(0.15, 0.05, 0.012), B, g, 0, 1.44, 0.245);
+    mk(box(0.34, 0.07, 0.2), B, g, 0, 1.08, 0.04);
+    for (var i = -1; i <= 1; i += 2) mk(sph(0.015, 8, 6), steel, g, i * 0.14, 1.08, 0.145);
+    /* gorget and great helm */
+    mk(cyl(0.15, 0.17, 0.09, 20), A, g, 0, 1.62, 0);
+    mk(cyl(0.135, 0.145, 0.27, 24), A, g, 0, 1.76, 0);
+    mk(new THREE.SphereGeometry(0.135, 24, 10, 0, PI * 2, 0, PI / 2), A, g, 0, 1.895, 0);
+    var rim = mk(new THREE.TorusGeometry(0.14, 0.01, 8, 28), B, g, 0, 1.63, 0); rim.rotation.x = PI / 2;
+    mk(box(0.2, 0.02, 0.04), dark, g, 0, 1.79, 0.13);
+    mk(box(0.018, 0.16, 0.04), dark, g, 0, 1.72, 0.13);
+    for (var r = 0; r < 3; r++) for (var c = 0; c < 3; c++) mk(sph(0.008, 6, 5), dark, g, 0.04 + c * 0.025, 1.7 - r * 0.025, 0.14);
+    mk(box(0.012, 0.14, 0.012), B, g, 0, 1.95, 0);
+    /* cape */
+    cape(g, 0x6a5b3c, 0.62, 1.05, 1.56, 1.4, 0.2);
+    /* sword in the right hand, point up */
+    pose(b.arms[-1], -0.5, -0.22, -1.15);
+    var SA = new THREE.Vector3(-0.04, 1, 0.12);
+    var gp = grip(g, b.arms[-1], -1, SA, new THREE.Vector3(0, -0.2, 1));
+    var sw = new THREE.Group();
+    mk(cyl(0.02, 0.02, 0.26, 12), dark, sw);
+    mk(sph(0.034, 12, 10), steel, sw, 0, -0.16, 0);
+    mk(box(0.3, 0.03, 0.035), steel, sw, 0, 0.14, 0);
+    mk(sph(0.022, 8, 6), steel, sw, 0.15, 0.14, 0); mk(sph(0.022, 8, 6), steel, sw, -0.15, 0.14, 0);
+    mk(box(0.056, 0.95, 0.014), steel, sw, 0, 0.155 + 0.475, 0);
+    var tip = mk(new THREE.ConeGeometry(0.04, 0.12, 4), steel, sw, 0, 0.155 + 0.95 + 0.06, 0); tip.rotation.y = PI / 4; tip.scale.z = 0.25;
+    mk(box(0.012, 0.8, 0.017), mat(0x8e929a, 0.6, 0.4), sw, 0, 0.155 + 0.42, 0);
+    g.add(sw); place(sw, gp, SA);
+    /* shield on the left arm */
+    pose(b.arms[1], -0.35, 0.28, -1.25);
+    var gl = grip(g, b.arms[1], 1, new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -0.1, 1));
+    var sh = new THREE.Shape();
+    sh.moveTo(-0.29, 0.36); sh.lineTo(0.29, 0.36); sh.lineTo(0.29, 0.02);
+    sh.quadraticCurveTo(0.28, -0.3, 0, -0.52); sh.quadraticCurveTo(-0.28, -0.3, -0.29, 0.02); sh.closePath();
+    var sg = new THREE.ExtrudeGeometry(sh, { depth: 0.035, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 2 });
+    var shield = new THREE.Group();
+    mk(sg, A, shield);
+    mk(box(0.07, 0.62, 0.02), B, shield, 0, -0.04, 0.062);
+    mk(box(0.4, 0.07, 0.02), B, shield, 0, 0.12, 0.062);
+    for (var k = 0; k < 8; k++) { var an = k / 8 * PI * 2; mk(sph(0.012, 6, 5), steel, shield, Math.cos(an) * 0.24, 0.12 + Math.sin(an) * 0.2, 0.065); }
+    shield.position.set(gl.x + 0.06, gl.y + 0.02, gl.z + 0.09); shield.rotation.y = 0.35;
+    g.add(shield);
+    return { g: g, accent: GOLD, name: "Рыцарь", note: "Бронзовые латы, закрытый шлем, меч в правой руке и щит с крестом. По пять пальцев на каждой руке." };
+  }
+
+  /* =====================================================================
+     3. BOSS: dark lord in black armour with a red saber
+     ===================================================================== */
+  function buildBoss() {
+    var RED = 0xff3326;
+    var K = mat(0x0d0e11, 0.35, 0.3), K2 = mat(0x18191d, 0.4, 0.45), Gl = mat(0x1a1b1f, 0.15, 0.6), Sv = mat(0x8c9097, 0.8, 0.3), panel = mat(0x2b2d33, 0.5, 0.5);
+    var b = base({ A: K, U: mat(0x111216, 0.1, 0.8), S: Gl, w: 1.0, p: 1.0, curl: 0.35, accent: RED }), g = b.g;
+    /* chest plate with control panel */
+    mk(box(0.44, 0.32, 0.2), K, g, 0, 1.4, 0.02);
+    mk(box(0.22, 0.16, 0.03), panel, g, 0, 1.43, 0.13);
+    var lights = [[-0.07, 1.46, 0xff2a2a], [-0.025, 1.46, 0xff2a2a], [0.025, 1.46, 0x2aff5a], [0.07, 1.46, 0x2aff5a], [-0.07, 1.41, 0x2a7bff], [0.07, 1.41, 0xff2a2a]];
+    lights.forEach(function (l) { mk(box(0.026, 0.02, 0.012), glow(l[2]), g, l[0], l[1], 0.147); });
+    for (var i = -2; i <= 2; i++) mk(box(0.02, 0.016, 0.012), Sv, g, i * 0.04, 1.385, 0.147);
+    /* belt */
+    mk(box(0.37, 0.07, 0.22), K2, g, 0, 1.06, 0.01);
+    mk(box(0.1, 0.07, 0.03), Sv, g, 0, 1.06, 0.13);
+    mk(box(0.022, 0.022, 0.012), glow(0xff2a2a), g, -0.12, 1.06, 0.122);
+    mk(box(0.022, 0.022, 0.012), glow(0x2aff5a), g, 0.12, 1.06, 0.122);
+    mk(box(0.14, 0.2, 0.05), K2, g, 0, 0.93, 0.12);
+    /* neck collar and helmet */
+    mk(cyl(0.17, 0.2, 0.1, 20), K, g, 0, 1.6, 0);
+    var dome = sph(0.15, 28, 18); dome.scale(1, 0.98, 1.08); mk(dome, K, g, 0, 1.77, -0.01);
+    var flare = new THREE.CylinderGeometry(0.15, 0.17, 0.08, 24, 1, true); flare.scale(1, 1, 1.05);
+    mk(flare, K, g, 0, 1.69, -0.01).material.side = THREE.DoubleSide;
+    mk(box(0.19, 0.1, 0.11), K, g, 0, 1.67, 0.1);
+    var brow = mk(box(0.2, 0.03, 0.06), K2, g, 0, 1.775, 0.125); brow.rotation.x = 0.25;
+    for (var s = -1; s <= 1; s += 2) {
+      var eye = mk(sph(0.038, 14, 10), mat(0x050506, 0.9, 0.12), g, s * 0.06, 1.74, 0.138); eye.scale.set(1, 1.15, 0.35); eye.rotation.z = s * 0.3;
+      mk(cyl(0.012, 0.012, 0.04, 8), Sv, g, s * 0.085, 1.66, 0.13).rotation.x = PI / 2;
+    }
+    var nose = mk(new THREE.ConeGeometry(0.02, 0.05, 3), K2, g, 0, 1.695, 0.152); nose.rotation.x = PI;
+    mk(box(0.07, 0.055, 0.03), Sv, g, 0, 1.63, 0.15);
+    for (i = -1; i <= 1; i++) mk(box(0.006, 0.05, 0.012), K, g, i * 0.02, 1.63, 0.167);
+    /* shoulder trim ridge */
+    for (s = -1; s <= 1; s += 2) { var rg = mk(cyl(0.12, 0.12, 0.012, 20), K2, g, s * 0.37, 1.55, 0); rg.rotation.z = -s * 0.5; }
+    /* cape */
+    cape(g, 0x090a0c, 0.62, 1.1, 1.57, 1.48, 0.2);
+    /* arms: saber hand on the right, held forward */
+    pose(b.arms[-1], -0.45, -0.25, -1.1);
+    pose(b.arms[1], 0.05, 0.16, -0.3);
+    var SA = new THREE.Vector3(0.35, 0.45, 0.8);
+    var gp = grip(g, b.arms[-1], -1, SA, new THREE.Vector3(0, -0.3, 1));
+    var sw = saber(RED); g.add(sw); place(sw, gp, SA);
+    return { g: g, accent: RED, name: "Главный босс", note: "Чёрная броня, шлем с маской, панель на груди и красный меч. По пять пальцев на каждой руке." };
+  }
+
+  /* ---------- scene ---------- */
+  var renderer;
+  try { renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true }); }
+  catch (e) { document.getElementById("fail").style.display = "grid"; return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(38, 1, 0.1, 60);
+  camera.position.set(1.2, 1.5, 6);
+  var controls = new THREE.OrbitControls(camera, canvas);
+  controls.target.set(0, 0.95, 0);
+  controls.enablePan = false; controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.minDistance = 2.6; controls.maxDistance = 10; controls.maxPolarAngle = 1.75;
+  controls.autoRotate = true; controls.autoRotateSpeed = 1.6;
+  var userZoomed = false;
+  controls.addEventListener("start", function () { userZoomed = true; });
+
+  scene.add(new THREE.HemisphereLight(0xb8c6ff, 0x1a1620, 0.5));
+  var key = new THREE.DirectionalLight(0xffffff, 1.1); key.position.set(2.5, 5, 3.5); key.castShadow = true;
+  key.shadow.mapSize.set(1024, 1024);
+  var sc = key.shadow.camera; sc.left = -2; sc.right = 2; sc.top = 3; sc.bottom = -1; sc.near = 1; sc.far = 14;
+  scene.add(key);
+  var rim = new THREE.DirectionalLight(0x8fa8ff, 0.9); rim.position.set(-3, 2.5, -3.5); scene.add(rim);
+  var fill = new THREE.DirectionalLight(0xffe6d0, 0.5); fill.position.set(-3, 1.5, 3); scene.add(fill);
+
+  var models = [buildSith(), buildKnight(), buildBoss()];
+  models.forEach(function (m) {
+    m.g.traverse(function (o) { if (o.isMesh && o.material && !o.material.transparent) { o.castShadow = true; o.receiveShadow = true; } });
+    scene.add(m.g); m.g.visible = false;
+  });
+
+  /* ---------- UI ---------- */
+  var tabs = Array.prototype.slice.call(document.querySelectorAll(".tab"));
+  var nameEl = document.getElementById("name"), noteEl = document.getElementById("note"), eyebrow = document.getElementById("eyebrow");
+  function hex(n) { return "#" + ("000000" + n.toString(16)).slice(-6); }
+  function select(i) {
+    models.forEach(function (m, k) { m.g.visible = k === i; });
+    tabs.forEach(function (t, k) { t.setAttribute("aria-pressed", k === i ? "true" : "false"); });
+    var m = models[i];
+    nameEl.textContent = m.name; noteEl.textContent = m.note; eyebrow.textContent = "Модель " + (i + 1) + " из 3";
+    document.documentElement.style.setProperty("--accent", hex(m.accent));
+    try { history.replaceState(null, "", "#m" + (i + 1)); } catch (e) {}
+  }
+  tabs.forEach(function (t) { t.addEventListener("click", function () { select(+t.getAttribute("data-i")); }); });
+  var rot = document.getElementById("rot");
+  rot.addEventListener("click", function () {
+    controls.autoRotate = !controls.autoRotate;
+    rot.setAttribute("aria-pressed", controls.autoRotate ? "true" : "false");
+    rot.textContent = "Вращение: " + (controls.autoRotate ? "вкл" : "выкл");
+  });
+  var startIdx = 0;
+  if (/^#m([123])$/.test(location.hash)) startIdx = +RegExp.$1 - 1;
+  select(startIdx);
+
+  /* ---------- sizing: keep the whole figure in frame on narrow screens ---------- */
+  function fit() {
+    var w = stage.clientWidth, h = stage.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+    if (!userZoomed) {
+      var t = Math.tan(camera.fov * PI / 360);
+      var need = Math.max(1.55 / t, 1.0 / (t * camera.aspect));
+      var dir = camera.position.clone().sub(controls.target).normalize();
+      camera.position.copy(controls.target).add(dir.multiplyScalar(Math.min(need * 1.05, 10)));
+    }
+  }
+  if (window.ResizeObserver) new ResizeObserver(fit).observe(stage); else window.addEventListener("resize", fit);
+  fit();
+
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce) { controls.autoRotate = false; rot.setAttribute("aria-pressed", "false"); rot.textContent = "Вращение: выкл"; }
+  var t0 = performance.now();
+  (function loop() {
+    requestAnimationFrame(loop);
+    var t = (performance.now() - t0) / 1000;
+    flickers.forEach(function (l, i) { l.intensity = 1.25 + Math.sin(t * 24 + i) * 0.06; });
+    controls.update();
+    renderer.render(scene, camera);
+  })();
+  window.__models = { scene: scene, camera: camera, controls: controls, select: select };
+})();
+</script>
+
+</body></html>
