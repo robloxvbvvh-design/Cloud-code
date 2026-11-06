@@ -1,0 +1,8 @@
+{
+  "name": "koli",
+  "version": "1.0.0",
+  "description": "Коли — кинематографичные видео по описанию",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "optionalDependencies": { "nodemailer": "^6.9.14" }
+}

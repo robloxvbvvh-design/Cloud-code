@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Коли</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- Заставка: крышка поднимается и открывает надпись -->
+<div id="splash">
+  <div class="stage">
+    <div class="word" aria-label="Коли">Коли</div>
+    <div class="lid"><div class="knob"></div></div>
+  </div>
+</div>
+
+<main id="app">
+  <!-- Вход -->
+  <section id="auth" class="card hidden">
+    <h1 class="logo">Коли</h1>
+    <div id="step-email">
+      <p class="sub">Создайте аккаунт или войдите по почте</p>
+      <input id="email" type="email" placeholder="Адрес электронной почты" autocomplete="email">
+      <button id="send">Получить код</button>
+    </div>
+    <div id="step-code" class="hidden">
+      <p class="sub">Мы отправили код на <b id="sent-to"></b></p>
+      <input id="code" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="one-time-code" class="code">
+      <button id="verify">Войти</button>
+      <button id="back" class="ghost">Изменить почту</button>
+    </div>
+    <p id="auth-msg" class="msg"></p>
+  </section>
+
+  <!-- Создание видео -->
+  <section id="studio" class="hidden">
+    <header><h1 class="logo small">Коли</h1><span id="who"></span><button id="logout" class="ghost">Выйти</button></header>
+    <div id="demo-note" class="note hidden">Демо-режим: ключ видеомодели не подключён (GEMINI_API_KEY), реальное видео не создаётся.</div>
+    <div class="card">
+      <h2>Создание видео</h2>
+      <label>Что снять
+        <textarea id="prompt" rows="4" placeholder="Например: Девушка в красном пальто идёт по ночному Токио под дождём, неон отражается в лужах, играет тихий джаз"></textarea>
+      </label>
+      <label>Персонаж (необязательно)
+        <div class="upload" id="drop">
+          <input id="img" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+          <img id="preview" class="hidden" alt="">
+          <span id="drop-txt">Загрузить фото персонажа</span>
+          <button type="button" id="rm" class="ghost hidden">Убрать</button>
+        </div>
+      </label>
+      <label>Длина: <b id="len-v">5</b> с
+        <input id="len" type="range" min="1" max="10" value="5">
+      </label>
+      <div class="label">Качество
+        <div class="seg" id="quality"></div>
+      </div>
+      <label class="switch"><input id="audio" type="checkbox" checked><span>Со звуком</span></label>
+      <button id="make">Создать видео</button>
+      <p id="make-msg" class="msg"></p>
+    </div>
+    <div id="list"></div>
+  </section>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
