@@ -90,7 +90,7 @@ async function loadList() {
     let body = '';
     if (v.status === 'working') body = `<div class="bar"><i style="width:${v.progress}%"></i></div>`;
     else if (v.status === 'done') body = `<video controls playsinline src="/video/${v.id}.mp4?t=${token}"></video>`;
-    else if (v.status === 'demo') body = `<div class="ph">Демо: здесь появится готовое видео после подключения видеомодели</div>`;
+    
     else body = `<div class="msg">${esc(v.error || 'Ошибка')}</div>`;
     return `<div class="vid"><div>${esc(v.prompt)}</div><div class="meta">${v.seconds} с · ${v.quality} · ${v.audio ? 'со звуком' : 'без звука'}</div>${body}</div>`;
   }).join('');

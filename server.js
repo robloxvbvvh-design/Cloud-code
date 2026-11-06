@@ -82,9 +82,12 @@ async function runVideo(id) {
       fs.writeFileSync(path.join(__dirname, 'data', 'videos', id + '.mp4'), Buffer.from(await f.arrayBuffer()));
       return set({ status: 'done', progress: 100 });
     }
-    if (!live) { // демо: имитация процесса, без реального видео
-      for (let i = 1; i <= 10; i++) { await new Promise(r => setTimeout(r, 600)); set({ progress: i * 10 }); }
-      return set({ status: 'demo', progress: 100 });
+    if (!live) { // встроенный движок: без ключей, моделей и видеокарты
+      const engine = require('./engine');
+      await engine.render({ prompt: v.prompt, seconds: v.seconds, quality: v.quality, audio: v.audio,
+        imagePath: v.imageFile ? path.join(__dirname, 'data', v.imageFile) : null,
+        out: path.join(__dirname, 'data', 'videos', id + '.mp4'), onProgress: p => { if (p > v.progress) set({ progress: p }); } });
+      return set({ status: 'done', progress: 100 });
     }
     const base = 'https://generativelanguage.googleapis.com/v1beta';
     const key = process.env.GEMINI_API_KEY;
@@ -210,4 +213,4 @@ http.createServer(async (req, res) => {
     res.writeHead(200, { 'content-type': MIME[path.extname(f)] || 'application/octet-stream' });
     fs.createReadStream(f).pipe(res);
   } catch (e) { console.error(e); json(res, 500, { error: 'Ошибка сервера' }); }
-}).listen(PORT, () => console.log(`Коли: http://localhost:${PORT}  (${WORKER ? 'локальный воркер' : live ? 'Veo' : 'демо-режим'}, ${mailer ? 'SMTP' : 'код в консоли'})`));
+}).listen(PORT, () => console.log(`Коли: http://localhost:${PORT}  (${WORKER ? 'локальный воркер' : live ? 'Veo' : 'встроенный движок'}, ${mailer ? 'SMTP' : 'код в консоли'})`));
