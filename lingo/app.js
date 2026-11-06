@@ -101,8 +101,19 @@ function startLesson(g, practice = false) {
   if (!practice && S.hearts <= 0) return heartsModal();
   L = { g, practice, q: buildLesson(S.course, g, practice).map(e => ({ ...e })), i: 0, miss: 0, n0: 10, state: 'ask' };
   $('#lesson').classList.remove('hidden');
-  showEx();
+  showIntro();
 }
+function showIntro() {
+  const C = COURSES[S.course], ui = Math.floor(L.g / LPU), li = L.g % LPU, U = C.units[ui];
+  const W = rot(U.w, li * 2).slice(0, 6), P = rot(U.p, li);
+  L.intro = true;
+  const card = (a, b) => `<div class="learn"><button class="spk sm" data-act="say" data-t="${esc(a)}" aria-label="Озвучить">🔊</button><div class="grow"><b>${esc(a)}</b><div class="muted">${esc(b)}</div></div></div>`;
+  $('#lesson').innerHTML = `<div class="l-top"><button class="x" data-act="quit" aria-label="Выйти">✕</button><div class="bar"><i style="width:0"></i></div><div class="l-hearts">${L.practice ? '🎓' : '❤️ ' + S.hearts}</div></div>
+    <div class="l-main"><h2 class="q">📖 Новые слова</h2><p class="muted">Сначала запомните слова, потом будут задания. Нажмите 🔊, чтобы послушать.</p>
+    <div class="card">${W.map(w => card(w[0], w[1])).join('')}</div><h3>Фразы</h3><div class="card">${P.map(p => card(p[0], p[1])).join('')}</div></div>
+    <div class="l-foot"><button class="btn" data-act="introgo">Начать урок</button></div>`;
+}
+function introGo() { L.intro = false; showEx(); }
 function closeLesson() { L = null; $('#lesson').classList.add('hidden'); $('#lesson').innerHTML = ''; render(); }
 function lessonShell(inner) {
   const pct = Math.min(100, Math.round(L.i / L.q.length * 100));
@@ -305,6 +316,7 @@ document.addEventListener('click', ev => {
     case 'quit': modal(`<div class="big">🦉</div><h2>Выйти из урока?</h2><p class="muted">Весь прогресс урока будет потерян.</p><button class="btn" data-act="close">Продолжить урок</button><button class="btn red" data-act="quit-yes">Выйти</button>`); break;
     case 'quit-yes': closeModal(); closeLesson(); break;
     case 'quit-done': closeLesson(); break;
+    case 'introgo': introGo(); break;
     case 'say': speak(d.t); break;
     case 'pick': if (L.state !== 'ask') break; L.sel = +d.i; document.querySelectorAll('.opt').forEach(b => b.classList.toggle('sel', b === el)); renderFoot(); break;
     case 'chip': {
@@ -340,8 +352,8 @@ document.addEventListener('click', ev => {
 });
 document.addEventListener('keydown', ev => {
   if (!L) return;
-  if (ev.key === 'Enter') { ev.preventDefault(); if (L.state === 'fb') next(); else check(); }
-  else if (/^[1-4]$/.test(ev.key) && L.state === 'ask' && document.activeElement?.id !== 'inp') $(`.opt[data-i="${+ev.key - 1}"]`)?.click();
+  if (ev.key === 'Enter') { ev.preventDefault(); if (L.intro) introGo(); else if (L.state === 'fb') next(); else check(); }
+  else if (!L.intro && /^[1-4]$/.test(ev.key) && L.state === 'ask' && document.activeElement?.id !== 'inp') $(`.opt[data-i="${+ev.key - 1}"]`)?.click();
 });
 setInterval(() => { if (!L && S.course && tab === 'learn' && S.hearts < MAX_H && $('#modal').classList.contains('hidden')) render(); }, 30000);
 render();
