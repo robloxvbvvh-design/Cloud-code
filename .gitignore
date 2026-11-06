@@ -38,3 +38,5 @@ google-services.json
 node_modules/
 data/
 .env
+__pycache__/
+koli.zip
