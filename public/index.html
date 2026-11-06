@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ии Матвей ТТ</title>
+<style>
+:root{--bg:#0d0b1a;--card:#17142b;--line:#2d2850;--text:#f3f1ff;--mut:#9b96c4;--a:#8b5cf6;--b:#ec4899}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(900px 500px at 50% -10%,#2a1b5e,var(--bg));color:var(--text);
+ font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh;min-height:100dvh}
+.screen{display:none;min-height:100dvh;flex-direction:column;padding:20px 16px;max-width:560px;margin:0 auto}
+.screen.on{display:flex}
+.logo{font-weight:800;font-size:22px;background:linear-gradient(90deg,var(--a),var(--b));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:14px}
+.hero .big{font-size:52px;font-weight:800;line-height:1.05}
+.hero p{color:var(--mut);max-width:320px;margin:0}
+button,.btn{font:inherit;border:0;border-radius:14px;padding:15px 20px;color:#fff;font-weight:700;cursor:pointer;
+ background:linear-gradient(90deg,var(--a),var(--b));width:100%}
+button:disabled{opacity:.5;cursor:default}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--mut)}
+input,textarea,select{width:100%;font:inherit;color:var(--text);background:var(--card);border:1px solid var(--line);
+ border-radius:12px;padding:13px;outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--a)}
+textarea{min-height:110px;resize:vertical}
+label{display:block;color:var(--mut);font-size:13px;margin:14px 0 6px}
+.err{color:#ff7b9c;min-height:20px;font-size:14px;margin-top:8px}
+.note{color:var(--mut);font-size:13px;margin-top:8px}
+.form{margin:auto 0;display:flex;flex-direction:column;gap:6px}
+h2{margin:0 0 4px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.top small{color:var(--mut)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{width:auto;flex:1;padding:11px 8px;background:var(--card);border:1px solid var(--line);color:var(--mut);font-weight:600}
+.seg button.on{background:linear-gradient(90deg,var(--a),var(--b));color:#fff;border-color:transparent}
+.char{display:flex;align-items:center;gap:12px;background:var(--card);border:1px dashed var(--line);border-radius:12px;padding:10px}
+.char img{width:56px;height:56px;border-radius:10px;object-fit:cover;display:none}
+.char span{flex:1;color:var(--mut);font-size:14px}
+.char button{width:auto;padding:9px 14px}
+.result{margin-top:18px}
+video{width:100%;border-radius:14px;background:#000}
+.bar{height:10px;background:var(--card);border-radius:8px;overflow:hidden;margin:10px 0}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--a),var(--b));transition:width .3s}
+a.dl{display:block;text-align:center;margin-top:10px;color:var(--a);text-decoration:none;font-weight:700}
+</style>
+</head>
+<body>
+
+<!-- 1. Приветствие -->
+<section class="screen on" id="s-welcome">
+  <div class="logo">Ии Матвей ТТ</div>
+  <div class="hero">
+    <div class="big">Привет! 👋</div>
+    <p>Зарегистрируйтесь и создавайте видео по описанию — до 30 секунд, до 4K, со звуком.</p>
+  </div>
+  <button id="start">Начать</button>
+</section>
+
+<!-- 2. E-mail -->
+<section class="screen" id="s-email">
+  <div class="logo">Ии Матвей ТТ</div>
+  <div class="form">
+    <h2>Введите e-mail</h2>
+    <p class="note" style="margin:0">Мы отправим на него код подтверждения.</p>
+    <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
+    <div class="err" id="e1"></div>
+    <button id="send">Получить код</button>
+  </div>
+</section>
+
+<!-- 3. Код -->
+<section class="screen" id="s-code">
+  <div class="logo">Ии Матвей ТТ</div>
+  <div class="form">
+    <h2>Введите код</h2>
+    <p class="note" style="margin:0" id="codeNote"></p>
+    <input id="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="••••••" style="letter-spacing:8px;text-align:center;font-size:24px">
+    <div class="err" id="e2"></div>
+    <button id="verify">Войти</button>
+    <button class="ghost" id="back">Другой e-mail</button>
+  </div>
+</section>
+
+<!-- 4. Генерация -->
+<section class="screen" id="s-app">
+  <div class="top"><div class="logo">Ии Матвей ТТ</div><small id="who"></small></div>
+
+  <div class="result" id="result" style="display:none;margin:0 0 14px">
+    <div id="prog">
+      <div id="stage">Готовлю…</div>
+      <div class="bar"><i id="barfill"></i></div>
+    </div>
+    <video id="vid" controls playsinline style="display:none"></video>
+    <a class="dl" id="dl" style="display:none" download="matvey-tt.mp4">Скачать видео</a>
+  </div>
+
+  <label>Запрос</label>
+  <textarea id="prompt" maxlength="600" placeholder="Опишите видео. Каждое предложение — новая сцена. Например: Космонавт летит над океаном. Закат окрашивает небо."></textarea>
+
+  <label>Персонаж (необязательно)</label>
+  <div class="char">
+    <img id="charImg" alt="">
+    <span id="charName">Не выбран</span>
+    <button class="ghost" id="charPick" type="button">Загрузить</button>
+    <button class="ghost" id="charClear" type="button" style="display:none">✕</button>
+  </div>
+  <input type="file" id="charFile" accept="image/png,image/jpeg,image/webp" hidden>
+
+  <label>Длительность: <b id="durVal">10</b> сек</label>
+  <input type="range" id="dur" min="3" max="30" value="10">
+
+  <div class="row">
+    <div>
+      <label>Качество</label>
+      <select id="quality">
+        <option>480p</option><option>720p</option><option selected>1080p</option><option>1440p</option><option>4K</option>
+      </select>
+    </div>
+    <div>
+      <label>Формат</label>
+      <select id="aspect"><option value="16:9">16:9 (горизонт)</option><option value="9:16">9:16 (вертикаль)</option></select>
+    </div>
+  </div>
+
+  <label>Звук</label>
+  <div class="seg" id="audioSeg">
+    <button data-v="1" class="on">Со звуком</button>
+    <button data-v="0">Без звука</button>
+  </div>
+
+  <div class="err" id="e3"></div>
+  <button id="gen" style="margin-top:6px">Создать видео</button>
+  <button class="ghost" id="logout" style="margin-top:10px">Выйти</button>
+</section>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const show = (id) => { document.querySelectorAll(".screen").forEach(s => s.classList.remove("on")); $(id).classList.add("on"); };
+let token = localStorage.getItem("mtt_token") || "";
+let email = "", character = null, audio = true;
+
+async function api(path, body, method) {
+  const r = await fetch(path, {
+    method: method || (body ? "POST" : "GET"),
+    headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(j.error || "Ошибка"); e.status = r.status; throw e; }
+  return j;
+}
+
+$("start").onclick = () => show("s-email");
+
+$("send").onclick = async () => {
+  $("e1").textContent = ""; email = $("email").value.trim();
+  $("send").disabled = true;
+  try {
+    const r = await api("/api/send-code", { email });
+    $("codeNote").textContent = r.sent
+      ? `Код отправлен на ${email}. Проверьте почту (и «Спам»).`
+      : `Почта на сервере не настроена (режим разработки). Ваш код: ${r.devCode}`;
+    show("s-code"); $("code").focus();
+  } catch (e) { $("e1").textContent = e.message; }
+  $("send").disabled = false;
+};
+$("back").onclick = () => show("s-email");
+
+$("verify").onclick = async () => {
+  $("e2").textContent = "";
+  try {
+    const r = await api("/api/verify", { email, code: $("code").value });
+    token = r.token; localStorage.setItem("mtt_token", token);
+    enter(r.email);
+  } catch (e) { $("e2").textContent = e.message; }
+};
+
+function enter(mail) { $("who").textContent = mail; show("s-app"); }
+
+$("logout").onclick = () => { localStorage.removeItem("mtt_token"); token = ""; show("s-welcome"); };
+
+$("dur").oninput = () => $("durVal").textContent = $("dur").value;
+$("audioSeg").onclick = (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  audio = b.dataset.v === "1";
+  [...$("audioSeg").children].forEach(x => x.classList.toggle("on", x === b));
+};
+
+$("charPick").onclick = () => $("charFile").click();
+$("charFile").onchange = () => {
+  const f = $("charFile").files[0]; if (!f) return;
+  if (f.size > 8e6) { $("e3").textContent = "Картинка больше 8 МБ"; return; }
+  const rd = new FileReader();
+  rd.onload = () => {
+    character = rd.result;
+    $("charImg").src = character; $("charImg").style.display = "block";
+    $("charName").textContent = f.name; $("charClear").style.display = "block";
+  };
+  rd.readAsDataURL(f);
+};
+$("charClear").onclick = () => {
+  character = null; $("charFile").value = ""; $("charImg").style.display = "none";
+  $("charName").textContent = "Не выбран"; $("charClear").style.display = "none";
+};
+
+$("gen").onclick = async () => {
+  $("e3").textContent = "";
+  $("gen").disabled = true;
+  $("result").style.display = "block"; $("prog").style.display = "block";
+  $("vid").style.display = "none"; $("dl").style.display = "none";
+  $("barfill").style.width = "0"; $("stage").textContent = "Отправляю запрос…";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  try {
+    const { id } = await api("/api/generate", {
+      prompt: $("prompt").value, duration: +$("dur").value, quality: $("quality").value,
+      aspect: $("aspect").value, audio, character,
+    });
+    for (;;) {
+      await new Promise(r => setTimeout(r, 800));
+      const j = await api("/api/job/" + id);
+      $("stage").textContent = j.stage || "…";
+      $("barfill").style.width = Math.round(j.progress * 100) + "%";
+      if (j.status === "error") throw new Error(j.error);
+      if (j.status === "done") {
+        // видео защищено токеном — забираем как blob
+        const r = await fetch(j.url, { headers: { Authorization: "Bearer " + token } });
+        const url = URL.createObjectURL(await r.blob());
+        $("vid").src = url; $("dl").href = url;
+        $("prog").style.display = "none"; $("vid").style.display = "block"; $("dl").style.display = "block";
+        $("vid").play().catch(() => {});
+        break;
+      }
+    }
+  } catch (e) {
+    $("result").style.display = "none"; $("e3").textContent = e.message;
+    if (e.status === 401) { localStorage.removeItem("mtt_token"); token = ""; show("s-welcome"); }
+  }
+  $("gen").disabled = false;
+};
+
+// Автовход, если токен ещё жив
+if (token) api("/api/me").then(r => enter(r.email)).catch(() => { localStorage.removeItem("mtt_token"); token = ""; });
+</script>
+</body>
+</html>
