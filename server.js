@@ -46,7 +46,8 @@ async function sendCode(email, code) {
 
 // --- видео ---
 const OPTS = { maxSeconds: 10, qualities: ['720p', '1080p', '1440p', '4K'] };
-const live = !!process.env.GEMINI_API_KEY;
+const WORKER = (process.env.LOCAL_WORKER_URL || '').replace(/\/$/, '');
+const live = !!(process.env.GEMINI_API_KEY || WORKER);
 
 function buildPrompt(v) {
   return `Cinematic live-action footage, photorealistic real people, natural motion, film lighting, shallow depth of field, not animation or cartoon. ${v.prompt}` +
@@ -57,6 +58,24 @@ async function runVideo(id) {
   const v = db.videos[id];
   const set = (p) => { Object.assign(v, p); save(); };
   try {
+    if (WORKER) { // локальный бесплатный воркер
+      let image;
+      if (v.imageFile) image = fs.readFileSync(path.join(__dirname, 'data', v.imageFile)).toString('base64');
+      const r = await fetch(WORKER + '/generate', { method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ prompt: v.prompt, seconds: v.seconds, quality: v.quality, audio: v.audio, image }) });
+      if (!r.ok) throw new Error('Воркер недоступен: ' + r.status);
+      const { id: wid } = await r.json();
+      for (;;) {
+        await new Promise(r => setTimeout(r, 2000));
+        const st = await (await fetch(`${WORKER}/status/${wid}`)).json();
+        if (st.status === 'error') throw new Error(st.error || 'Ошибка воркера');
+        set({ progress: st.progress || 0 });
+        if (st.status === 'done') break;
+      }
+      const f = await fetch(`${WORKER}/result/${wid}`);
+      fs.writeFileSync(path.join(__dirname, 'data', 'videos', id + '.mp4'), Buffer.from(await f.arrayBuffer()));
+      return set({ status: 'done', progress: 100 });
+    }
     if (!live) { // демо: имитация процесса, без реального видео
       for (let i = 1; i <= 10; i++) { await new Promise(r => setTimeout(r, 600)); set({ progress: i * 10 }); }
       return set({ status: 'demo', progress: 100 });
@@ -185,4 +204,4 @@ http.createServer(async (req, res) => {
     res.writeHead(200, { 'content-type': MIME[path.extname(f)] || 'application/octet-stream' });
     fs.createReadStream(f).pipe(res);
   } catch (e) { console.error(e); json(res, 500, { error: 'Ошибка сервера' }); }
-}).listen(PORT, () => console.log(`Коли: http://localhost:${PORT}  (${live ? 'Veo' : 'демо-режим'}, ${mailer ? 'SMTP' : 'код в консоли'})`));
+}).listen(PORT, () => console.log(`Коли: http://localhost:${PORT}  (${WORKER ? 'локальный воркер' : live ? 'Veo' : 'демо-режим'}, ${mailer ? 'SMTP' : 'код в консоли'})`));
