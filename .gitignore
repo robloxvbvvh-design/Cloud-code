@@ -37,3 +37,5 @@ google-services.json
 # App
 node_modules/
 data/
+android/out/
+android/debug.keystore
