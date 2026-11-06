@@ -5,6 +5,8 @@ import base64, io, json, os, subprocess, threading, queue, uuid, tempfile, trace
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 MOCK = os.environ.get("WORKER_MOCK") == "1"
+HF = os.environ.get("BACKEND") == "hf"   # бесплатный облачный GPU: публичный Space Lightricks/LTX-2-3 (видео со звуком)
+HF_SPACE = os.environ.get("HF_SPACE", "Lightricks/LTX-2-3")
 MODEL = os.environ.get("LTX_MODEL", "Lightricks/LTX-Video")
 OUT = os.path.join(tempfile.gettempdir(), "koli-worker"); os.makedirs(OUT, exist_ok=True)
 SIZES = {"720p": 1280, "1080p": 1920, "1440p": 2560, "4K": 3840}  # итоговая ширина (апскейл ffmpeg)
@@ -26,7 +28,7 @@ def get_pipe(kind):
 def upscale(src, dst, width, audio_note=None):
     h = int(width * 9 / 16) // 2 * 2
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", src, "-vf",
-                    f"scale={width}:{h}:flags=lanczos,format=yuv420p", "-c:v", "libx264", "-crf", "17", "-preset", "medium", "-an", dst], check=True)
+                    f"scale={width}:{h}:flags=lanczos,format=yuv420p", "-c:v", "libx264", "-crf", "17", "-preset", "medium", "-map", "0:v", "-map", "0:a?", "-c:a", "aac", dst], check=True)
 
 def run(job):
     j = jobs[job["id"]]; raw = os.path.join(OUT, job["id"] + "_raw.mp4"); fin = os.path.join(OUT, job["id"] + ".mp4")
@@ -36,6 +38,19 @@ def run(job):
         for i in range(5):
             import time; time.sleep(0.5); j["progress"] = 20 * (i + 1)
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", f"testsrc2=size=768x432:rate={FPS}", "-t", str(secs), "-pix_fmt", "yuv420p", raw], check=True)
+    elif HF:
+        from gradio_client import Client, handle_file
+        kw = {"token": os.environ["HF_TOKEN"]} if os.environ.get("HF_TOKEN") else {}
+        img = None
+        if job.get("image"):
+            ip = os.path.join(OUT, job["id"] + ".img"); open(ip, "wb").write(base64.b64decode(job["image"])); img = handle_file(ip)
+        j["progress"] = 10
+        prompt = "Cinematic live-action film, photorealistic real people, natural motion. " + job["prompt"]
+        if job.get("audio"): prompt += " Natural synchronized sound and dialogue."
+        res = Client(HF_SPACE, **kw).predict(img, prompt, float(secs), False, 10, True, 576, 1024, api_name="/generate_video")
+        path = res[0] if isinstance(res, (list, tuple)) else res
+        if isinstance(path, dict): path = path.get("video") or path.get("path")
+        import shutil; shutil.copy(path, raw)
     else:
         import torch
         from diffusers.utils import export_to_video, load_image

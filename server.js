@@ -46,6 +46,12 @@ async function sendCode(email, code) {
 
 // --- видео ---
 const OPTS = { maxSeconds: 10, qualities: ['720p', '1080p', '1440p', '4K'] };
+if (process.env.BACKEND === 'hf' && !process.env.LOCAL_WORKER_URL) { // встроенный воркер на бесплатном облачном GPU
+  process.env.LOCAL_WORKER_URL = 'http://127.0.0.1:8188';
+  const w = require('child_process').spawn(process.env.PYTHON || 'python3', [path.join(__dirname, 'worker', 'worker.py')], { stdio: 'inherit', env: process.env });
+  w.on('error', e => console.error('Воркер не запустился:', e.message));
+  process.on('exit', () => w.kill());
+}
 const WORKER = (process.env.LOCAL_WORKER_URL || '').replace(/\/$/, '');
 const live = !!(process.env.GEMINI_API_KEY || WORKER);
 
